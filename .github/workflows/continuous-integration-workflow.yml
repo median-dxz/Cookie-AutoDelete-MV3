@@ -12,6 +12,7 @@ on:
 
 permissions:
   actions: write
+  contents: read
   pull-requests: read
 
 jobs:
@@ -67,20 +68,20 @@ jobs:
     steps:
       - name: Checkout Default Commit
         if: github.event_name != 'pull_request_target'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Checkout Specific REF Commit
         if: github.event_name == 'pull_request_target'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ needs.pre_info.outputs.gitSHA }}
-      - name: Use Node.js 18.x
+      - name: Use Node.js LTS 22.x
         id: node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18.x'
+          node-version: '22.x'
       - name: Cache Node Modules
         id: nodeCache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           # npm cache files stored in `~/.npm` on Linux
           path: ~/.npm
@@ -100,20 +101,20 @@ jobs:
         env:
           GITSHA: ${{ needs.pre_info.outputs.gitSHA }}
       - name: Archive Code Coverage Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: coverage
       - name: Coveralls.io Coverage Upload
         id: coveralls_action
-        uses: coverallsapp/github-action@v1.2.4
+        uses: coverallsapp/github-action@v2
         if: false && github.event_name != 'pull_request_target'
         continue-on-error: true
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Coveralls.io Coverage Upload for pull_request_target
         id: coveralls_prt
-        uses: coverallsapp/github-action@v1.2.4
+        uses: coverallsapp/github-action@v2
         continue-on-error: true
         if: false && github.event_name == 'pull_request_target'
         with:
@@ -129,13 +130,13 @@ jobs:
         working-directory: ./builds
       - name: Upload Artifact for Mozilla Firefox Build
         if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.extbuilds.outputs.ffdir }}
           path: builds/${{ steps.extbuilds.outputs.ffdir }}
       - name: Upload Artifact for Google Chrome Build
         if: github.event_name == 'pull_request' || github.event_name == 'pull_request_target'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.extbuilds.outputs.crdir }}
           path: builds/${{ steps.extbuilds.outputs.crdir }}
