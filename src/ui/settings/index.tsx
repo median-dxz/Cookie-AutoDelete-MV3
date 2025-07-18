@@ -11,7 +11,7 @@
  * SOFTWARE.
  */
 /* istanbul ignore file: React-redux init */
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { createUIStore } from 'redux-webext';
 import { sleep } from '../../services/Libs';
@@ -29,11 +29,10 @@ async function initApp() {
   const mountNode = document.createElement('div');
   document.body.appendChild(mountNode);
 
-  ReactDOM.render(
+  createRoot(mountNode).render(
     <Provider store={store}>
       <App />
     </Provider>,
-    mountNode,
   );
 }
 

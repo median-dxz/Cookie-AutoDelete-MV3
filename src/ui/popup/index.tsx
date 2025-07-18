@@ -12,7 +12,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
 import { createUIStore } from 'redux-webext';
 import { isChrome, sleep } from '../../services/Libs';
@@ -35,13 +35,12 @@ async function initApp() {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
-  ReactDOM.render(
+  createRoot(mountNode).render(
     <Provider store={store}>
       <ErrorBoundary>
         <App />
       </ErrorBoundary>
     </Provider>,
-    mountNode,
   );
 }
 

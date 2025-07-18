@@ -10,7 +10,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import { Component } from 'react';
+import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { Dispatch } from 'redux';
 import { removeExpressionUI, updateExpressionUI } from '../../redux/Actions';
@@ -30,7 +30,7 @@ interface OwnProps {
   expressions: ReadonlyArray<Expression>;
   expressionColumnTitle: string;
   storeId: string;
-  emptyElement: JSX.Element;
+  emptyElement: React.JSX.Element;
 }
 
 interface DispatchProps {
