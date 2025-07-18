@@ -1,7 +1,12 @@
 // For a detailed explanation regarding each configuration property, visit:
 // https://jestjs.io/docs/en/configuration.html
 
-module.exports = {
+// @ts-check
+
+/**
+ * @type {import("jest").Config}
+ */
+const config = {
   // All imported modules in your tests should be mocked automatically
   // automock: false,
 
@@ -55,11 +60,7 @@ module.exports = {
   // globalTeardown: null,
 
   // A set of global variables that need to be available in all test environments
-  globals: {
-    'ts-jest': {
-      tsconfig: 'tsconfig.json',
-    },
-  },
+  // globals: {},
 
   // An array of directory names to be searched recursively up from the requiring module's location
   // moduleDirectories: [
@@ -156,7 +157,7 @@ module.exports = {
 
   // A map from regular expressions to paths to transformers
   transform: {
-    '^.+\\.tsx?$': 'ts-jest',
+    '^.+\\.tsx?$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
   },
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
@@ -174,4 +175,7 @@ module.exports = {
   // Whether to use watchman for file crawling
   // watchman: true,
 };
+
 process.env = Object.assign(process.env, { JEST_TEST: true });
+
+export default config;

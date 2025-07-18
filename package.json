@@ -50,6 +50,7 @@
     "globals": "^16.3.0",
     "jest": "^30.0.4",
     "jest-date-mock": "^1.0.10",
+    "jest-environment-jsdom": "^30.0.4",
     "jest-when": "^3.7.0",
     "prettier": "^3.6.2",
     "source-map-loader": "^5.0.0",
