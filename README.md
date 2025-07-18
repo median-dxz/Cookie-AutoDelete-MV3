@@ -38,7 +38,7 @@ Once this main objective is accomplished, I will open a PR and follow up on its 
 
 ### via Self Installation
 
-- [Github Releases](https://github.com/Cookie-AutoDelete/Cookie-AutoDelete/releases)
+- [Github Releases](https://github.com/median-dxz/Cookie-AutoDelete-MV3/releases)
 
 > Please keep in mind that at this time only Mozilla Firefox and Google Chrome (as well as its development branches e.g. Developer Edition, Canary) will be supported.  
 > Microsoft Edge Chromium will be considered partially official as it is using the same code as Google Chrome for now.
