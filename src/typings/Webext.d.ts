@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // This file is only a stub to make typescript happy.
 // Tests uses global.browser.*, actual usage is browser.*
 /**

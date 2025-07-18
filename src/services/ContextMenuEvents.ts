@@ -776,7 +776,6 @@ export default class ContextMenuEvents extends StoreUser {
           StoreUser.store.dispatch<any>(
             updateSetting({
               name: SettingID.ACTIVE_MODE,
-              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
               value: info.checked!,
             }),
           );
