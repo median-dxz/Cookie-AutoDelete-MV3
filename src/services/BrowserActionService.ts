@@ -11,8 +11,8 @@
  * SOFTWARE.
  */
 
+import type { State } from '../redux/Store';
 import { ListType, SettingID } from '../typings/Enums';
-import type { State } from '../typings/Global';
 import { getHostname, returnMatchedExpressionObject } from './Libs';
 import * as browser from 'webextension-polyfill';
 
@@ -156,13 +156,13 @@ export const checkIfProtected = async (
 
     if (matchedExpression) {
       showNumberOfCookiesInTitle(aTab, {
-        platformOS: state.cache.platformOs,
+        platformOS: state.cache.platformOs as string,
         listType: matchedExpression.listType,
         cookieLength,
       });
     } else {
       showNumberOfCookiesInTitle(aTab, {
-        platformOS: state.cache.platformOs,
+        platformOS: state.cache.platformOs as string,
         listType: 'NO LIST',
         cookieLength,
       });
