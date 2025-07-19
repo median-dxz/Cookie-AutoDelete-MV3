@@ -16,6 +16,7 @@ import * as browser from 'webextension-polyfill';
 import { getMatchedExpressions } from '../../../services/Libs';
 import ExpressionTable from '../../common_components/ExpressionTable';
 import { useUISelector } from '../../hooks';
+import { shallowEqual } from 'react-redux';
 
 interface OwnProps {
   url: string;
@@ -25,8 +26,9 @@ interface OwnProps {
 const FilteredExpression: React.FunctionComponent<OwnProps> = (props) => {
   const { storeId, url } = props;
 
-  const expressions = useUISelector((state) =>
-    getMatchedExpressions(state.lists, storeId, url),
+  const expressions = useUISelector(
+    (state) => getMatchedExpressions(state.lists, storeId, url),
+    shallowEqual,
   );
 
   return (

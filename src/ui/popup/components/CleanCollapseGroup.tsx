@@ -14,7 +14,6 @@
 import * as React from 'react';
 import { useCallback } from 'react';
 import * as browser from 'webextension-polyfill';
-import type { State } from '../../../redux/Store';
 import { cookieCleanupUI } from '../../../redux/UIActions';
 import {
   clearCookiesForThisDomain,
@@ -38,7 +37,7 @@ const CleanCollapseGroup: React.FunctionComponent<
   const { hostname, tab } = props;
 
   const dispatch = useUIDispatch();
-  const state = useUISelector((state: State) => state);
+  const state = useUISelector((state) => state);
 
   const handleCookieCleanup = useCallback(
     (payload: CleanupProperties) => {

@@ -38,6 +38,7 @@ import {
   selectActivityLog,
 } from '../../redux/ActivityLogSlice';
 import { selectCache } from '../../redux/CacheSlice';
+import { shallowEqual } from 'react-redux';
 
 const createSummary = (cleanupObj: ActivityLog) => {
   const domainSet = new Set<string>();
@@ -245,7 +246,7 @@ const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
       cache: selectCache(state),
       activityLog: selectActivityLog(state),
     };
-  });
+  }, shallowEqual);
 
   const onRemoveActivity = useCallback(
     (activity: ActivityLog) => {
