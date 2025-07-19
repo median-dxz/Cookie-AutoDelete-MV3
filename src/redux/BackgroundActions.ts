@@ -10,8 +10,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import type { ActionCreator, Dispatch } from 'redux';
-import type { ThunkAction } from 'redux-thunk';
+import {
+  createAction,
+  type ActionCreator,
+  type ThunkAction,
+  type UnknownAction
+} from '@reduxjs/toolkit';
 import * as browser from 'webextension-polyfill';
 import { checkIfProtected } from '../services/BrowserActionService';
 import { cleanCookiesOperation } from '../services/CleanupService';
@@ -28,220 +32,146 @@ import type { ActivityLog, CleanupProperties } from '../typings/Cleanup';
 import { ListType, SettingID, SiteDataType } from '../typings/Enums';
 import type {
   Expression,
-  GetState,
   Setting,
-  State,
   StoreIdToExpressionList,
 } from '../typings/Global';
-import {
-  ReduxConstants,
-  type ADD_ACTIVITY_LOG,
-  type ADD_EXPRESSION,
-  type CLEAR_ACTIVITY_LOG,
-  type CLEAR_EXPRESSIONS,
-  type COOKIE_CLEANUP,
-  type INCREMENT_COOKIE_DELETED_COUNTER,
-  type ReduxAction,
-  type REMOVE_ACTIVITY_LOG,
-  type REMOVE_EXPRESSION,
-  type REMOVE_LIST,
-  type RESET_ALL,
-  type RESET_COOKIE_DELETED_COUNTER,
-  type RESET_SETTINGS,
-  type UPDATE_EXPRESSION,
-  type UPDATE_SETTING,
-} from '../typings/ReduxConstants';
-import { initialState } from './State';
+import { addActivity } from './ActivityLogSlice';
+import { incrementCookieDeletedCounter } from './CookieDeletedCounterSlices';
+import { ReduxConstants } from './ReduxConstants';
+import { initialState as initialSettings } from './SettingsSlice';
+import type { State } from './Store';
 
-export const addExpressionUI = (payload: Expression): ADD_EXPRESSION => ({
-  payload,
-  type: ReduxConstants.ADD_EXPRESSION,
-});
+// Those actions can only work in background scripts. To use them in the UI,
+// invoke their UI versions. webext-redux will dispatch these thunk actions through aliases.
 
-export const clearExpressionsUI = (
-  payload: StoreIdToExpressionList,
-): CLEAR_EXPRESSIONS => ({
-  payload,
-  type: ReduxConstants.CLEAR_EXPRESSIONS,
-});
+export const addExpression: ActionCreator<
+  ThunkAction<void, State, unknown, UnknownAction>,
+  [Expression]
+> = (payload) => (dispatch, getState) => {
+  // Sanitize the payload's storeId
+  const storeId = getStoreId(getState(), payload.storeId);
+  const defaultOptions = getContainerExpressionDefault(
+    getState(),
+    storeId,
+    payload.listType as ListType,
+  );
 
-export const removeExpressionUI = (payload: Expression): REMOVE_EXPRESSION => ({
-  payload,
-  type: ReduxConstants.REMOVE_EXPRESSION,
-});
-export const updateExpressionUI = (payload: Expression): UPDATE_EXPRESSION => ({
-  payload,
-  type: ReduxConstants.UPDATE_EXPRESSION,
-});
-export const removeListUI = (
-  payload: keyof StoreIdToExpressionList,
-): REMOVE_LIST => ({
-  payload,
-  type: ReduxConstants.REMOVE_LIST,
-});
-
-export const addExpression =
-  (payload: Expression) =>
-  (dispatch: Dispatch<ReduxAction>, getState: GetState): void => {
-    // Sanitize the payload's storeId
-    const storeId = getStoreId(getState(), payload.storeId);
-    const defaultOptions = getContainerExpressionDefault(
-      getState(),
+  dispatch({
+    payload: {
+      ...payload,
+      cleanAllCookies:
+        payload.cleanAllCookies !== undefined
+          ? payload.cleanAllCookies
+          : defaultOptions.cleanAllCookies,
+      cleanSiteData: payload.cleanSiteData
+        ? payload.cleanSiteData
+        : defaultOptions.cleanSiteData || [],
       storeId,
-      payload.listType as ListType,
-    );
+    },
+    type: ReduxConstants.ADD_EXPRESSION,
+  });
+  checkIfProtected(getState());
+};
 
-    dispatch({
-      payload: {
-        ...payload,
-        cleanAllCookies:
-          payload.cleanAllCookies !== undefined
-            ? payload.cleanAllCookies
-            : defaultOptions.cleanAllCookies,
-        cleanSiteData: payload.cleanSiteData
-          ? payload.cleanSiteData
-          : defaultOptions.cleanSiteData || [],
-        storeId,
-      },
-      type: ReduxConstants.ADD_EXPRESSION,
-    });
-    checkIfProtected(getState());
-  };
+export const clearExpressions: ActionCreator<
+  ThunkAction<void, State, unknown, UnknownAction>,
+  [StoreIdToExpressionList]
+> = (payload) => (dispatch, getState) => {
+  dispatch({
+    payload,
+    type: ReduxConstants.CLEAR_EXPRESSIONS,
+  });
+  checkIfProtected(getState());
+};
 
-export const clearExpressions =
-  (payload: StoreIdToExpressionList) =>
-  (dispatch: Dispatch<ReduxAction>, getState: GetState): void => {
-    dispatch({
-      payload,
-      type: ReduxConstants.CLEAR_EXPRESSIONS,
-    });
-    checkIfProtected(getState());
-  };
+export const removeExpression: ActionCreator<
+  ThunkAction<void, State, unknown, UnknownAction>,
+  [Expression]
+> = (payload) => (dispatch, getState) => {
+  dispatch({
+    payload: {
+      ...payload,
+      // Sanitize the payload's storeId
+      storeId: getStoreId(getState(), payload.storeId),
+    },
+    type: ReduxConstants.REMOVE_EXPRESSION,
+  });
+  checkIfProtected(getState());
+};
 
-export const removeExpression =
-  (payload: Expression) =>
-  (dispatch: Dispatch<ReduxAction>, getState: GetState): void => {
-    dispatch({
-      payload: {
-        ...payload,
-        // Sanitize the payload's storeId
-        storeId: getStoreId(getState(), payload.storeId),
-      },
-      type: ReduxConstants.REMOVE_EXPRESSION,
-    });
-    checkIfProtected(getState());
-  };
-
-export const updateExpression =
-  (payload: Expression) =>
-  (dispatch: Dispatch<ReduxAction>, getState: GetState): void => {
-    // Sanitize the payload's storeId
-    const sanitizedStoreId = getStoreId(getState(), payload.storeId);
-    dispatch({
-      payload: {
-        ...payload,
-        storeId: sanitizedStoreId,
-      },
-      type: ReduxConstants.UPDATE_EXPRESSION,
-    });
-    // Migration Downgrades between 3.5.0 and 3.4.0
-    // Uncheck 'Keep LocalStorage' on New ... Expressions
-    if (
-      payload.expression === `_Default:${payload.listType}` &&
-      sanitizedStoreId === 'default' &&
-      payload.cleanSiteData
-    ) {
-      if (payload.cleanSiteData.includes(SiteDataType.LOCALSTORAGE)) {
-        if (
-          !getSetting(
-            getState(),
-            `${payload.listType.toLowerCase()}CleanLocalstorage` as SettingID,
-          )
-        ) {
-          // Enable Deprecated Option
-          dispatch({
-            payload: {
-              name: `${payload.listType.toLowerCase()}CleanLocalstorage`,
-              value: true,
-            },
-            type: ReduxConstants.UPDATE_SETTING,
-          });
-        }
-      } else {
-        if (
-          getSetting(
-            getState(),
-            `${payload.listType.toLowerCase()}CleanLocalstorage` as SettingID,
-          )
-        ) {
-          // Disable Deprecated Option
-          dispatch({
-            payload: {
-              name: `${payload.listType.toLowerCase()}CleanLocalstorage`,
-              value: false,
-            },
-            type: ReduxConstants.UPDATE_SETTING,
-          });
-        }
+export const updateExpression: ActionCreator<
+  ThunkAction<void, State, unknown, UnknownAction>,
+  [Expression]
+> = (payload) => (dispatch, getState) => {
+  // Sanitize the payload's storeId
+  const sanitizedStoreId = getStoreId(getState(), payload.storeId);
+  dispatch({
+    payload: {
+      ...payload,
+      storeId: sanitizedStoreId,
+    },
+    type: ReduxConstants.UPDATE_EXPRESSION,
+  });
+  // Migration Downgrades between 3.5.0 and 3.4.0
+  // Uncheck 'Keep LocalStorage' on New ... Expressions
+  if (
+    payload.expression === `_Default:${payload.listType}` &&
+    sanitizedStoreId === 'default' &&
+    payload.cleanSiteData
+  ) {
+    if (payload.cleanSiteData.includes(SiteDataType.LOCALSTORAGE)) {
+      if (
+        !getSetting(
+          getState(),
+          `${payload.listType.toLowerCase()}CleanLocalstorage` as SettingID,
+        )
+      ) {
+        // Enable Deprecated Option
+        dispatch({
+          payload: {
+            name: `${payload.listType.toLowerCase()}CleanLocalstorage`,
+            value: true,
+          },
+          type: ReduxConstants.UPDATE_SETTING,
+        });
+      }
+    } else {
+      if (
+        getSetting(
+          getState(),
+          `${payload.listType.toLowerCase()}CleanLocalstorage` as SettingID,
+        )
+      ) {
+        // Disable Deprecated Option
+        dispatch({
+          payload: {
+            name: `${payload.listType.toLowerCase()}CleanLocalstorage`,
+            value: false,
+          },
+          type: ReduxConstants.UPDATE_SETTING,
+        });
       }
     }
-    checkIfProtected(getState());
-  };
+  }
+  checkIfProtected(getState());
+};
 
-export const removeList =
-  (payload: keyof StoreIdToExpressionList) =>
-  (dispatch: Dispatch<ReduxAction>, getState: GetState): void => {
-    dispatch({
-      payload,
-      type: ReduxConstants.REMOVE_LIST,
-    });
-    checkIfProtected(getState());
-  };
-
-export const addActivity = (payload: ActivityLog): ADD_ACTIVITY_LOG => ({
-  payload,
-  type: ReduxConstants.ADD_ACTIVITY_LOG,
-});
-
-export const clearActivities = (): CLEAR_ACTIVITY_LOG => ({
-  type: ReduxConstants.CLEAR_ACTIVITY_LOG,
-});
-
-export const removeActivity = (payload: ActivityLog): REMOVE_ACTIVITY_LOG => ({
-  payload,
-  type: ReduxConstants.REMOVE_ACTIVITY_LOG,
-});
-
-export const incrementCookieDeletedCounter = (
-  payload: number,
-): INCREMENT_COOKIE_DELETED_COUNTER => ({
-  payload,
-  type: ReduxConstants.INCREMENT_COOKIE_DELETED_COUNTER,
-});
-
-export const resetCookieDeletedCounter = (): RESET_COOKIE_DELETED_COUNTER => ({
-  type: ReduxConstants.RESET_COOKIE_DELETED_COUNTER,
-});
-
-export const updateSetting = (payload: Setting): UPDATE_SETTING => ({
-  payload,
-  type: ReduxConstants.UPDATE_SETTING,
-});
-
-export const resetSettings = (): RESET_SETTINGS => ({
-  type: ReduxConstants.RESET_SETTINGS,
-});
-
-export const resetAll = (): RESET_ALL => ({
-  type: ReduxConstants.RESET_ALL,
-});
+export const removeList: ActionCreator<
+  ThunkAction<void, State, unknown, UnknownAction>,
+  [keyof StoreIdToExpressionList]
+> = (payload) => (dispatch, getState) => {
+  dispatch({
+    payload,
+    type: ReduxConstants.REMOVE_LIST,
+  });
+  checkIfProtected(getState());
+};
 
 // Validates the setting object and adds missing settings if it doesn't already exist in the initialState
 export const validateSettings: ActionCreator<
-  ThunkAction<void, State, null, ReduxAction>
+  ThunkAction<void, State, unknown, UnknownAction>
 > = () => (dispatch, getState) => {
   const { cache, settings } = getState();
-  const initialSettings = initialState.settings;
   const settingKeys = Object.keys(settings);
   const initialSettingKeys = Object.keys(initialSettings);
 
@@ -328,20 +258,12 @@ export const validateSettings: ActionCreator<
   }
 };
 
-export const cookieCleanupUI = (
-  payload: CleanupProperties,
-): COOKIE_CLEANUP => ({
-  payload,
-  type: ReduxConstants.COOKIE_CLEANUP,
-});
-
 // Cookie Cleanup operation that is to be called from the React UI
 export const cookieCleanup: ActionCreator<
-  ThunkAction<void, State, null, ReduxAction>
+  ThunkAction<void, State, null, UnknownAction>,
+  [CleanupProperties]
 > =
-  (
-    options: CleanupProperties = { greyCleanup: false, ignoreOpenTabs: false },
-  ) =>
+  (options = { greyCleanup: false, ignoreOpenTabs: false }) =>
   async (dispatch, getState) => {
     const cleanupDoneObject = await cleanCookiesOperation(getState(), options);
     if (!cleanupDoneObject) return;
@@ -407,3 +329,5 @@ export const cookieCleanup: ActionCreator<
       }
     }
   };
+
+export const handleStartUp = createAction(ReduxConstants.ON_STARTUP);

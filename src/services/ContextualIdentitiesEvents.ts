@@ -13,11 +13,11 @@
 
 import * as browser from 'webextension-polyfill';
 
-import { removeListUI } from '../redux/Actions';
 import { EventListenerAction, SettingID } from '../typings/Enums';
-import { ReduxConstants } from '../typings/ReduxConstants';
+import { ReduxConstants } from '../redux/ReduxConstants';
 import { cadLog, eventListenerActions, getSetting } from './Libs';
 import StoreUser from './StoreUser';
+import { removeListUI } from '../redux/UIActions';
 
 export default class ContextualIdentitiesEvents extends StoreUser {
   public static async init(): Promise<void> {

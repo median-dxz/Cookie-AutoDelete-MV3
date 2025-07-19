@@ -15,8 +15,20 @@ import ipaddr from 'ipaddr.js';
 import shortid from 'shortid';
 import * as browser from 'webextension-polyfill';
 import type { CookiePropertiesCleanup } from '../typings/Cleanup';
-import type { CacheMap, CADLogItem, Expression, State, StoreIdToExpressionList } from '../typings/Global';
-import { BrowserName, EventListenerAction, ListType, SettingID, SiteDataType } from '../typings/Enums';
+import type {
+  CacheMap,
+  CADLogItem,
+  Expression,
+  StoreIdToExpressionList,
+} from '../typings/Global';
+import {
+  BrowserName,
+  EventListenerAction,
+  ListType,
+  SettingID,
+  SiteDataType,
+} from '../typings/Enums';
+import type { State } from '../redux/Store';
 
 /* --- CONSTANTS --- */
 export const CADCOOKIENAME = 'CookieAutoDeleteBrowsingDataCleanup';
@@ -390,7 +402,7 @@ export const getHostname = (urlToGetHostName: string | undefined): string => {
       return hostname.slice(1, -1);
     }
     return hostname;
-  } catch (e) {
+  } catch (err) {
     return '';
   }
 };
@@ -764,9 +776,9 @@ export const returnMatchedExpressionObject = (
  * Return optional attributes for the Cookie API calls
  */
 export const returnOptionalCookieAPIAttributes = (
-  state: State | CacheMap,
+  state: State,
   cookieAPIAttributes: Partial<CookiePropertiesCleanup> & {
-    [x: string]: any;
+    [x: string]: unknown;
   },
 ): Partial<CookiePropertiesCleanup> => {
   // Add optional firstPartyDomain attribute

@@ -11,8 +11,7 @@
  * SOFTWARE.
  */
 
-import type { ActivityLog } from './Cleanup';
-import type { SiteDataType, ListType, BrowserName } from './Enums';
+import { BrowserName, type ListType, type SiteDataType } from './Enums';
 
 export type StoreIdToExpressionList = Readonly<{
   [storeId: string]: ReadonlyArray<Expression>;
@@ -20,19 +19,9 @@ export type StoreIdToExpressionList = Readonly<{
 
 export type MapToSettingObject = Readonly<{ [setting: string]: Setting }>;
 
-export type CacheMap = Readonly<
-  { [browserDetect: string]: BrowserName } & { [key: string]: any }
->;
-
-export type GetState = () => State;
-
-export type State = Readonly<{
-  lists: StoreIdToExpressionList;
-  cookieDeletedCounterTotal: number;
-  cookieDeletedCounterSession: number;
-  settings: MapToSettingObject;
-  activityLog: ReadonlyArray<ActivityLog>;
-  cache: CacheMap;
+export type CacheMap = Readonly<{
+  [key: string]: unknown;
+  browserDetect?: BrowserName;
 }>;
 
 export type Expression = Readonly<{

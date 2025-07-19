@@ -13,10 +13,11 @@
 
 import * as browser from 'webextension-polyfill';
 import {
-  addExpressionUI,
-  cookieCleanup,
-  updateSetting,
-} from '../redux/Actions';
+  EventListenerAction,
+  ListType,
+  SettingID,
+  SiteDataType,
+} from '../typings/Enums';
 import {
   clearCookiesForThisDomain,
   clearLocalStorageForThisDomain,
@@ -34,12 +35,10 @@ import {
   SITEDATATYPES,
 } from './Libs';
 import StoreUser from './StoreUser';
-import {
-  SettingID,
-  EventListenerAction,
-  SiteDataType,
-  ListType,
-} from '../typings/Enums';
+
+import { cookieCleanup } from '../redux/BackgroundActions';
+import { updateSetting } from '../redux/SettingsSlice';
+import { addExpressionUI } from '../redux/UIActions';
 
 export default class ContextMenuEvents extends StoreUser {
   public static MenuID = {
@@ -788,7 +787,7 @@ export default class ContextMenuEvents extends StoreUser {
             debug,
           );
           // Setting Updated.
-          StoreUser.store.dispatch<any>(
+          StoreUser.store.dispatch(
             updateSetting({
               name: SettingID.ACTIVE_MODE,
               value: info.checked!,
@@ -875,7 +874,7 @@ export default class ContextMenuEvents extends StoreUser {
         }`,
       ])}\n${browser.i18n.getMessage('addNewExpressionNotificationIgnore')}`,
     });
-    StoreUser.store.dispatch<any>(addExpressionUI(payload));
+    StoreUser.store.dispatch(addExpressionUI(payload));
   }
 
   protected static isInitialized = false;

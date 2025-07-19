@@ -13,14 +13,14 @@
 
 import StoreUser from './StoreUser';
 import ContextualIdentitiesEvents from './ContextualIdentitiesEvents';
-import { validateSettings } from '../redux/Actions';
+import { validateSettings } from '../redux/BackgroundActions';
 import { cadLog, siteDataToBrowser, SITEDATATYPES } from './Libs';
 import { checkIfProtected, setGlobalIcon } from './BrowserActionService';
 import ContextMenuEvents from './ContextMenuEvents';
-import { ReduxConstants } from '../typings/ReduxConstants';
 import { SettingID, SiteDataType } from '../typings/Enums';
 import type { MapToSettingObject } from '../typings/Global';
 import * as browser from 'webextension-polyfill';
+import { updateSetting } from '../redux/SettingsSlice';
 
 export default class SettingService extends StoreUser {
   public static init(): void {
@@ -60,14 +60,17 @@ export default class SettingService extends StoreUser {
         ) {
           continue;
         }
-        if (SettingService.getCurrent(SettingID.SITEDATA_EMPTY_ON_ENABLE) === false) {
+        if (
+          SettingService.getCurrent(SettingID.SITEDATA_EMPTY_ON_ENABLE) ===
+          false
+        ) {
           cadLog(
             {
               msg: `${siteData} setting activated, but Empty Site Data on Enable is false. Existing site data kept.`,
               type: 'info',
             },
             SettingService.getCurrent(SettingID.DEBUG_MODE) as boolean,
-          )
+          );
           continue;
         }
         await browser.browsingData.remove(
@@ -141,13 +144,12 @@ export default class SettingService extends StoreUser {
     b: SettingID,
   ): void {
     if (p[a] && SettingService.current[a] && SettingService.hasNewValue(p, a)) {
-      StoreUser.store.dispatch({
-        payload: {
+      StoreUser.store.dispatch(
+        updateSetting({
           name: b,
           value: SettingService.getCurrent(a),
-        },
-        type: ReduxConstants.UPDATE_SETTING,
-      });
+        }),
+      );
     }
   }
 

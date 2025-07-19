@@ -1,5 +1,3 @@
-/* istanbul ignore file: Redux init. */
-
 /**
  * Copyright (c) 2017-2022 Kenny Do and CAD Team (https://github.com/Cookie-AutoDelete/Cookie-AutoDelete/graphs/contributors)
  * Licensed under MIT (https://github.com/Cookie-AutoDelete/Cookie-AutoDelete/blob/3.X.X-Branch/LICENSE)
@@ -12,12 +10,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import type { Store } from '@reduxjs/toolkit';
-import type { State } from '../redux/Store';
-
-export default class StoreUser {
-  public static init(store: Store<State>): void {
-    StoreUser.store = store;
-  }
-  protected static store: Store<State>;
+export const enum ReduxConstants {
+  ADD_EXPRESSION = 'ADD_EXPRESSION',
+  CLEAR_EXPRESSIONS = 'CLEAR_EXPRESSIONS',
+  REMOVE_EXPRESSION = 'REMOVE_EXPRESSION',
+  UPDATE_EXPRESSION = 'UPDATE_EXPRESSION',
+  REMOVE_LIST = 'REMOVE_LIST',
+  COOKIE_CLEANUP = 'COOKIE_CLEANUP',
+  ON_STARTUP = 'ON_STARTUP',
+  ADD_CACHE = 'ADD_CACHE',
+  INCREMENT_COOKIE_DELETED_COUNTER = 'INCREMENT_COOKIE_DELETED_COUNTER',
+  RESET_COOKIE_DELETED_COUNTER = 'RESET_COOKIE_DELETED_COUNTER',
+  UPDATE_SETTING = 'UPDATE_SETTING',
+  RESET_SETTINGS = 'RESET_SETTINGS',
+  ADD_ACTIVITY_LOG = 'ADD_ACTIVITY_LOG',
+  CLEAR_ACTIVITY_LOG = 'CLEAR_ACTIVITY_LOG',
+  REMOVE_ACTIVITY_LOG = 'REMOVE_ACTIVITY_LOG',
+  RESET_ALL = 'RESET_ALL',
 }

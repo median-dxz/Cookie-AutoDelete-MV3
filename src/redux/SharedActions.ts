@@ -1,7 +1,5 @@
-// This file is only a stub to make typescript happy.
-// Tests uses global.browser.*, actual usage is browser.*
 /**
- * Copyright (c) 2017-2022 Kenny Do and CAD Team (https://github.com/Cookie-AutoDelete/Cookie-AutoDelete/graphs/contributors)
+ * Copyright (c) 2020-2022 Kenneth Tran and CAD Team (https://github.com/Cookie-AutoDelete/Cookie-AutoDelete/graphs/contributors)
  * Licensed under MIT (https://github.com/Cookie-AutoDelete/Cookie-AutoDelete/blob/3.X.X-Branch/LICENSE)
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -13,4 +11,10 @@
  * SOFTWARE.
  */
 
-declare module 'redux-webext';
+import { createAction } from '@reduxjs/toolkit';
+import { ReduxConstants } from './ReduxConstants';
+
+// These actions are plain action creator which is pure function (instead of thunk).
+// So they can directly trigger reducer execution, whether in the background or in the UI.
+// Just like actions exported directly from the slice.
+export const resetAll = createAction(ReduxConstants.RESET_ALL);

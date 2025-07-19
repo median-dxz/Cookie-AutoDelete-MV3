@@ -10,10 +10,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import type { Store } from 'redux';
 import * as browser from 'webextension-polyfill';
-import { cookieCleanup, validateSettings } from './redux/Actions';
-import createStore from './redux/Store';
+
+import { configureWrapStore } from './redux/Store';
 import {
   checkIfProtected,
   setGlobalIcon,
@@ -32,11 +31,25 @@ import {
 import SettingService from './services/SettingService';
 import StoreUser from './services/StoreUser';
 import TabEvents from './services/TabEvents';
-import { BrowserName, EventListenerAction, ListType, SettingID, SiteDataType } from './typings/Enums';
-import {  type State } from './typings/Global';
-import { type ReduxAction, ReduxConstants } from './typings/ReduxConstants';
+import {
+  BrowserName,
+  EventListenerAction,
+  ListType,
+  SettingID,
+  SiteDataType,
+} from './typings/Enums';
 
-let store: Store<State, ReduxAction>;
+import {
+  cookieCleanup,
+  handleStartUp,
+  validateSettings,
+} from './redux/BackgroundActions';
+import { addCache } from './redux/CacheSlice';
+import { resetCookieDeletedCounter } from './redux/CookieDeletedCounterSlices';
+import { addExpression, updateExpression } from './redux/ListsSlice';
+import { updateSetting } from './redux/SettingsSlice';
+
+let store: ReturnType<typeof configureWrapStore>;
 
 // Delay saving to disk to queue up actions
 let delaySave = false;
@@ -68,55 +81,24 @@ const onStartUp = async () => {
   } catch (err) {
     stateFromStorage = {};
   }
-  store = createStore(stateFromStorage);
+  store = configureWrapStore(stateFromStorage);
 
-  store.dispatch({
-    type: ReduxConstants.ON_STARTUP,
-  });
+  store.dispatch(handleStartUp());
   // Store the FF version in cache
   if (browserDetect() === BrowserName.Firefox) {
     const browserInfo = await browser.runtime.getBrowserInfo();
     const browserVersion = Number.parseInt(browserInfo.version);
-    store.dispatch({
-      payload: {
-        key: 'browserVersion',
-        value: browserVersion,
-      },
-      type: ReduxConstants.ADD_CACHE,
-    });
-    store.dispatch({
-      payload: {
-        key: 'browserInfo',
-        value: browserInfo,
-      },
-      type: ReduxConstants.ADD_CACHE,
-    });
+    store.dispatch(addCache({ key: 'browserVersion', value: browserVersion }));
+    store.dispatch(addCache({ key: 'browserInfo', value: browserInfo }));
   }
+
   // Store which browser environment in cache
-  store.dispatch({
-    payload: {
-      key: 'browserDetect',
-      value: browserDetect(),
-    },
-    type: ReduxConstants.ADD_CACHE,
-  });
+  store.dispatch(addCache({ key: 'browserDetect', value: browserDetect() }));
 
   // Store platform in cache
   const platformInfo = await browser.runtime.getPlatformInfo();
-  store.dispatch({
-    payload: {
-      key: 'platformInfo',
-      value: platformInfo,
-    },
-    type: ReduxConstants.ADD_CACHE,
-  });
-  store.dispatch({
-    payload: {
-      key: 'platformOs',
-      value: platformInfo.os,
-    },
-    type: ReduxConstants.ADD_CACHE,
-  });
+  store.dispatch(addCache({ key: 'platformInfo', value: platformInfo }));
+  store.dispatch(addCache({ key: 'platformOs', value: platformInfo.os }));
 
   // This is important to initialize the Store for all classes that extend from this
   StoreUser.init(store);
@@ -125,7 +107,7 @@ const onStartUp = async () => {
   store.subscribe(SettingService.onSettingsChange);
   store.subscribe(saveToStorage);
 
-  store.dispatch<any>(validateSettings());
+  store.dispatch(validateSettings());
 
   await setGlobalIcon(
     getSetting(store.getState(), SettingID.ACTIVE_MODE) as boolean,
@@ -222,6 +204,7 @@ onStartUp().then(() => {
     getSetting(store.getState(), SettingID.DEBUG_MODE) as boolean,
   );
 });
+
 browser.runtime.onStartup.addListener(async () => {
   await awaitStore();
   if (getSetting(store.getState(), SettingID.ACTIVE_MODE) === true) {
@@ -254,6 +237,7 @@ browser.runtime.onStartup.addListener(async () => {
   }
   await checkIfProtected(store.getState());
 });
+
 browser.runtime.onInstalled.addListener(async (details) => {
   await awaitStore();
   await checkIfProtected(store.getState());
@@ -267,28 +251,26 @@ browser.runtime.onInstalled.addListener(async (details) => {
       if (convertVersionToNumber(details.previousVersion) < 350) {
         // Migrate State Setting Name localstorageCleanup to localStorageCleanup
         if (store.getState().settings[SettingID.CLEANUP_LOCALSTORAGE_OLD]) {
-          store.dispatch({
-            payload: {
+          store.dispatch(
+            updateSetting({
               name: SettingID.CLEANUP_LOCALSTORAGE,
               value: store.getState().settings[
                 SettingID.CLEANUP_LOCALSTORAGE_OLD
               ].value as boolean,
-            },
-            type: ReduxConstants.UPDATE_SETTING,
-          });
+            }),
+          );
         }
         // Migrate Expression Option 'cleanLocalStorage' to cleanSiteData: [ LocalStorage ]
         Object.values(store.getState().lists).forEach((list) => {
           list.forEach((exp) => {
             // Only migrate if cleanSiteData array is undefined/empty.
             if (exp.cleanLocalStorage && !exp.cleanSiteData) {
-              store.dispatch({
-                payload: {
+              store.dispatch(
+                updateExpression({
                   ...exp,
                   cleanSiteData: [SiteDataType.LOCALSTORAGE],
-                },
-                type: ReduxConstants.UPDATE_EXPRESSION,
-              });
+                }),
+              );
             }
           });
         });
@@ -313,23 +295,20 @@ browser.runtime.onInstalled.addListener(async (details) => {
               );
             }
             containers.forEach((list) => {
-              store.dispatch({
-                payload: {
+              store.dispatch(
+                addExpression({
                   expression: `_Default:${lt}`,
                   cleanSiteData: [SiteDataType.LOCALSTORAGE],
                   listType: lt,
                   storeId: list,
-                },
-                type: ReduxConstants.ADD_EXPRESSION,
-              });
+                }),
+              );
             });
           }
         }
       }
       if (convertVersionToNumber(details.previousVersion) < 300) {
-        store.dispatch({
-          type: ReduxConstants.RESET_COOKIE_DELETED_COUNTER,
-        });
+        store.dispatch(resetCookieDeletedCounter());
       }
       if (getSetting(store.getState(), SettingID.ENABLE_NEW_POPUP)) {
         await browser.runtime.openOptionsPage();
@@ -360,7 +339,7 @@ const greyCleanup = () => {
         ignoreOpenTabs: getSetting(
           store.getState(),
           SettingID.CLEAN_OPEN_TABS_STARTUP,
-        ),
+        ) as boolean,
       }),
     );
   }

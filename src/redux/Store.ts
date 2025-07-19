@@ -12,54 +12,75 @@
  */
 /* istanbul ignore file: Redux stuff.*/
 
-import { applyMiddleware, createStore } from 'redux';
-import { thunk } from 'redux-thunk';
-import { createBackgroundStore } from 'redux-webext';
-import { ReduxConstants } from '../typings/ReduxConstants';
+import { configureStore } from '@reduxjs/toolkit';
+import logger from 'redux-logger';
+import { alias, createWrapStore } from 'webext-redux';
+
+// slices
+import activityLog from './ActivityLogSlice';
+import cache from './CacheSlice';
+import cookieDeletedCounterReducers from './CookieDeletedCounterSlices';
+import lists from './ListsSlice';
+import settings from './SettingsSlice';
+import type { ActivityLog } from '../typings/Cleanup';
+import type {
+  StoreIdToExpressionList,
+  MapToSettingObject,
+  CacheMap,
+} from '../typings/Global';
 import {
   addExpression,
-  clearActivities,
   clearExpressions,
   cookieCleanup,
-  removeActivity,
   removeExpression,
   removeList,
-  resetAll,
-  resetCookieDeletedCounter,
-  resetSettings,
   updateExpression,
-  updateSetting,
-} from './Actions';
-import reducer from './Reducers';
+} from './BackgroundActions';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const consoleMessages = (store: any) => (next: any) => (action: any) => {
-  // console.log(
-  //   `dispatching action => ${action.type}
-  // payload => ${JSON.stringify(action.payload)}`,
-  // );
+const wrapStore = createWrapStore();
 
-  return next(action);
-};
-
-const actions: { [key in ReduxConstants]?: any } = {
+const aliases = {
   ADD_EXPRESSION: addExpression,
-  CLEAR_ACTIVITY_LOG: clearActivities,
   CLEAR_EXPRESSIONS: clearExpressions,
-  COOKIE_CLEANUP: cookieCleanup,
-  REMOVE_ACTIVITY_LOG: removeActivity,
   REMOVE_EXPRESSION: removeExpression,
-  REMOVE_LIST: removeList,
-  RESET_ALL: resetAll,
-  RESET_COOKIE_DELETED_COUNTER: resetCookieDeletedCounter,
-  RESET_SETTINGS: resetSettings,
   UPDATE_EXPRESSION: updateExpression,
-  UPDATE_SETTING: updateSetting,
+  REMOVE_LIST: removeList,
+  COOKIE_CLEANUP: cookieCleanup,
 };
 
-export default (state = {}): any => {
-  return createBackgroundStore({
-    actions,
-    store: createStore(reducer, state, applyMiddleware(thunk, consoleMessages)),
+export const configureWrapStore = (state: State) => {
+  const store = configureStore({
+    preloadedState: state,
+    reducer: {
+      activityLog,
+      cache,
+      ...cookieDeletedCounterReducers,
+      lists,
+      settings,
+    },
+    middleware: (getDefaultMiddleware) => {
+      const middleware = getDefaultMiddleware();
+
+      // Conditionally add another middleware in dev
+      if (process.env.NODE_ENV !== 'production') {
+        middleware.push(logger);
+      }
+
+      return middleware.concat(alias(aliases));
+    },
   });
+  wrapStore(store);
+  return store;
 };
+
+export type State = Readonly<{
+  lists: StoreIdToExpressionList;
+  cookieDeletedCounterTotal: number;
+  cookieDeletedCounterSession: number;
+  settings: MapToSettingObject;
+  activityLog: ReadonlyArray<ActivityLog>;
+  cache: CacheMap;
+}>;
+
+export type Dispatch = ReturnType<typeof configureWrapStore>['dispatch'];
+export type GetState = ReturnType<typeof configureWrapStore>['getState'];

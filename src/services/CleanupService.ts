@@ -27,7 +27,6 @@ import {
   ReasonKeep,
   BrowserName,
 } from '../typings/Enums';
-import type { State } from '../typings/Global';
 import * as browser from 'webextension-polyfill';
 
 // If you don't have the above types, you can declare the browser namespace for typescript as follows:
@@ -53,6 +52,7 @@ import {
   trimDot,
   undefinedIsTrue,
 } from './Libs';
+import type { State } from '../redux/Store';
 
 /** Prepare a cookie for deletion */
 export const prepareCookie = (
@@ -591,7 +591,7 @@ export const otherBrowsingDataCleanup = async (
   const chrome = isChrome(state.cache);
   const debug = getSetting(state, SettingID.DEBUG_MODE) as boolean;
   const browsingDataResult: ActivityLog['browsingDataCleanup'] = {};
-  const ffVersion = Number.parseInt(state.cache.browserVersion);
+  const ffVersion = Number.parseInt(state.cache.browserVersion as string);
   if (
     getSetting(state, SettingID.CLEANUP_CACHE) &&
     ((isFirefoxNotAndroid(state.cache) && ffVersion >= 78) || chrome)
