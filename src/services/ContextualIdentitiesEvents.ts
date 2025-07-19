@@ -14,10 +14,10 @@
 import * as browser from 'webextension-polyfill';
 
 import { EventListenerAction, SettingID } from '../typings/Enums';
-import { ReduxConstants } from '../redux/ReduxConstants';
 import { cadLog, eventListenerActions, getSetting } from './Libs';
 import StoreUser from './StoreUser';
 import { removeListUI } from '../redux/UIActions';
+import { addCache } from '../redux/CacheSlice';
 
 export default class ContextualIdentitiesEvents extends StoreUser {
   public static async init(): Promise<void> {
@@ -79,13 +79,12 @@ export default class ContextualIdentitiesEvents extends StoreUser {
     ContextualIdentitiesEvents.isInitialized = false;
     const existingContainers = await browser.contextualIdentities.query({});
     for (const ci of existingContainers) {
-      StoreUser.store.dispatch({
-        payload: {
+      StoreUser.store.dispatch(
+        addCache({
           key: ci.cookieStoreId,
           value: undefined,
-        },
-        type: ReduxConstants.ADD_CACHE,
-      });
+        }),
+      );
     }
     cadLog(
       {
@@ -102,13 +101,12 @@ export default class ContextualIdentitiesEvents extends StoreUser {
   public static onContainerCreated(
     changeInfo: browser.ContextualIdentities.OnCreatedChangeInfoType,
   ): void {
-    StoreUser.store.dispatch({
-      payload: {
+    StoreUser.store.dispatch(
+      addCache({
         key: changeInfo.contextualIdentity.cookieStoreId,
         value: changeInfo.contextualIdentity.name,
-      },
-      type: ReduxConstants.ADD_CACHE,
-    });
+      }),
+    );
   }
 
   /**
@@ -130,13 +128,12 @@ export default class ContextualIdentitiesEvents extends StoreUser {
       );
     }
 
-    StoreUser.store.dispatch({
-      payload: {
+    StoreUser.store.dispatch(
+      addCache({
         key: changeInfo.contextualIdentity.cookieStoreId,
         value: undefined,
-      },
-      type: ReduxConstants.ADD_CACHE,
-    });
+      }),
+    );
   }
 
   /**
@@ -152,13 +149,12 @@ export default class ContextualIdentitiesEvents extends StoreUser {
       cache[changeInfo.contextualIdentity.cookieStoreId] !==
         changeInfo.contextualIdentity.name
     ) {
-      StoreUser.store.dispatch({
-        payload: {
+      StoreUser.store.dispatch(
+        addCache({
           key: changeInfo.contextualIdentity.cookieStoreId,
           value: changeInfo.contextualIdentity.name,
-        },
-        type: ReduxConstants.ADD_CACHE,
-      });
+        }),
+      );
     }
   }
 
@@ -166,35 +162,31 @@ export default class ContextualIdentitiesEvents extends StoreUser {
   public static async cacheCookieStoreIdNames(): Promise<void> {
     const contextualIdentitiesObjects =
       await browser.contextualIdentities.query({});
-    StoreUser.store.dispatch({
-      payload: {
+    StoreUser.store.dispatch(
+      addCache({
         key: 'default',
         value: 'Default',
-      },
-      type: ReduxConstants.ADD_CACHE,
-    });
-    StoreUser.store.dispatch({
-      payload: {
+      }),
+    );
+    StoreUser.store.dispatch(
+      addCache({
         key: 'firefox-default',
         value: 'Default',
-      },
-      type: ReduxConstants.ADD_CACHE,
-    });
-    StoreUser.store.dispatch({
-      payload: {
+      }),
+    );
+    StoreUser.store.dispatch(
+      addCache({
         key: 'firefox-private',
         value: 'Private',
-      },
-      type: ReduxConstants.ADD_CACHE,
-    });
+      }),
+    );
     contextualIdentitiesObjects.forEach((object) =>
-      StoreUser.store.dispatch({
-        payload: {
+      StoreUser.store.dispatch(
+        addCache({
           key: object.cookieStoreId,
           value: object.name,
-        },
-        type: ReduxConstants.ADD_CACHE,
-      }),
+        }),
+      ),
     );
   }
 

@@ -18,26 +18,29 @@ import type { CleanupProperties } from '../typings/Cleanup';
 
 // Those actions are specific to the UI and should not be used in background scripts.
 
+// The name cannot be the same as the background action. Otherwise, it will cause a dispatch loop.
+const UIActionSuffix = '_UI';
+
 export const addExpressionUI = createAction<Expression>(
-  ReduxConstants.ADD_EXPRESSION,
+  ReduxConstants.ADD_EXPRESSION + UIActionSuffix,
 );
 
 export const clearExpressionsUI = createAction<StoreIdToExpressionList>(
-  ReduxConstants.CLEAR_EXPRESSIONS,
+  ReduxConstants.CLEAR_EXPRESSIONS + UIActionSuffix,
 );
 
 export const removeExpressionUI = createAction<Expression>(
-  ReduxConstants.REMOVE_EXPRESSION,
+  ReduxConstants.REMOVE_EXPRESSION + UIActionSuffix,
 );
 
 export const updateExpressionUI = createAction<Expression>(
-  ReduxConstants.UPDATE_EXPRESSION,
+  ReduxConstants.UPDATE_EXPRESSION + UIActionSuffix,
 );
 
 export const removeListUI = createAction<keyof StoreIdToExpressionList>(
-  ReduxConstants.REMOVE_LIST,
+  ReduxConstants.REMOVE_LIST + UIActionSuffix,
 );
 
 export const cookieCleanupUI = createAction<CleanupProperties>(
-  ReduxConstants.COOKIE_CLEANUP,
+  ReduxConstants.COOKIE_CLEANUP + UIActionSuffix,
 );

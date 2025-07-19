@@ -12,7 +12,7 @@
  */
 /* istanbul ignore file: Redux stuff.*/
 
-import { configureStore } from '@reduxjs/toolkit';
+import { configureStore, type ActionCreator } from '@reduxjs/toolkit';
 import logger from 'redux-logger';
 import { alias, createWrapStore } from 'webext-redux';
 
@@ -36,16 +36,47 @@ import {
   removeList,
   updateExpression,
 } from './BackgroundActions';
+import {
+  addExpressionUI,
+  clearExpressionsUI,
+  cookieCleanupUI,
+  removeExpressionUI,
+  removeListUI,
+  updateExpressionUI,
+} from './UIActions';
 
 const wrapStore = createWrapStore();
 
+type InferActionFromCreator<T> = T extends ActionCreator<infer P> ? P : never;
+
+// Corresponds to Action Type in UIActions
 const aliases = {
-  ADD_EXPRESSION: addExpression,
-  CLEAR_EXPRESSIONS: clearExpressions,
-  REMOVE_EXPRESSION: removeExpression,
-  UPDATE_EXPRESSION: updateExpression,
-  REMOVE_LIST: removeList,
-  COOKIE_CLEANUP: cookieCleanup,
+  [addExpressionUI.type]: ({
+    payload,
+  }: InferActionFromCreator<typeof addExpressionUI>) => addExpression(payload),
+
+  [clearExpressionsUI.type]: ({
+    payload,
+  }: InferActionFromCreator<typeof clearExpressionsUI>) =>
+    clearExpressions(payload),
+
+  [removeExpressionUI.type]: ({
+    payload,
+  }: InferActionFromCreator<typeof removeExpressionUI>) =>
+    removeExpression(payload),
+
+  [updateExpressionUI.type]: ({
+    payload,
+  }: InferActionFromCreator<typeof updateExpressionUI>) =>
+    updateExpression(payload),
+
+  [removeListUI.type]: ({
+    payload,
+  }: InferActionFromCreator<typeof removeListUI>) => removeList(payload),
+
+  [cookieCleanupUI.type]: ({
+    payload,
+  }: InferActionFromCreator<typeof cookieCleanupUI>) => cookieCleanup(payload),
 };
 
 export const configureWrapStore = (state: State) => {
@@ -66,7 +97,7 @@ export const configureWrapStore = (state: State) => {
         middleware.push(logger);
       }
 
-      return middleware.concat(alias(aliases));
+      return middleware.prepend(alias(aliases));
     },
   });
   wrapStore(store);

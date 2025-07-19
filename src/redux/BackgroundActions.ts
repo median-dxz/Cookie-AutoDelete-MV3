@@ -14,7 +14,7 @@ import {
   createAction,
   type ActionCreator,
   type ThunkAction,
-  type UnknownAction
+  type UnknownAction,
 } from '@reduxjs/toolkit';
 import * as browser from 'webextension-polyfill';
 import { checkIfProtected } from '../services/BrowserActionService';
@@ -38,8 +38,18 @@ import type {
 import { addActivity } from './ActivityLogSlice';
 import { incrementCookieDeletedCounter } from './CookieDeletedCounterSlices';
 import { ReduxConstants } from './ReduxConstants';
-import { initialState as initialSettings } from './SettingsSlice';
+import {
+  initialState as initialSettings,
+  updateSetting,
+} from './SettingsSlice';
 import type { State } from './Store';
+import {
+  addExpression as addExpressionAction,
+  clearExpressions as clearExpressionsAction,
+  removeExpression as removeExpressionAction,
+  updateExpression as updateExpressionAction,
+  removeList as removeListAction
+} from './ListsSlice';
 
 // Those actions can only work in background scripts. To use them in the UI,
 // invoke their UI versions. webext-redux will dispatch these thunk actions through aliases.
@@ -56,8 +66,8 @@ export const addExpression: ActionCreator<
     payload.listType as ListType,
   );
 
-  dispatch({
-    payload: {
+  dispatch(
+    addExpressionAction({
       ...payload,
       cleanAllCookies:
         payload.cleanAllCookies !== undefined
@@ -67,9 +77,8 @@ export const addExpression: ActionCreator<
         ? payload.cleanSiteData
         : defaultOptions.cleanSiteData || [],
       storeId,
-    },
-    type: ReduxConstants.ADD_EXPRESSION,
-  });
+    }),
+  );
   checkIfProtected(getState());
 };
 
@@ -77,10 +86,7 @@ export const clearExpressions: ActionCreator<
   ThunkAction<void, State, unknown, UnknownAction>,
   [StoreIdToExpressionList]
 > = (payload) => (dispatch, getState) => {
-  dispatch({
-    payload,
-    type: ReduxConstants.CLEAR_EXPRESSIONS,
-  });
+  dispatch(clearExpressionsAction(payload));
   checkIfProtected(getState());
 };
 
@@ -88,14 +94,13 @@ export const removeExpression: ActionCreator<
   ThunkAction<void, State, unknown, UnknownAction>,
   [Expression]
 > = (payload) => (dispatch, getState) => {
-  dispatch({
-    payload: {
+  dispatch(
+    removeExpressionAction({
       ...payload,
       // Sanitize the payload's storeId
       storeId: getStoreId(getState(), payload.storeId),
-    },
-    type: ReduxConstants.REMOVE_EXPRESSION,
-  });
+    }),
+  );
   checkIfProtected(getState());
 };
 
@@ -105,13 +110,12 @@ export const updateExpression: ActionCreator<
 > = (payload) => (dispatch, getState) => {
   // Sanitize the payload's storeId
   const sanitizedStoreId = getStoreId(getState(), payload.storeId);
-  dispatch({
-    payload: {
+  dispatch(
+    updateExpressionAction({
       ...payload,
       storeId: sanitizedStoreId,
-    },
-    type: ReduxConstants.UPDATE_EXPRESSION,
-  });
+    }),
+  );
   // Migration Downgrades between 3.5.0 and 3.4.0
   // Uncheck 'Keep LocalStorage' on New ... Expressions
   if (
@@ -127,13 +131,12 @@ export const updateExpression: ActionCreator<
         )
       ) {
         // Enable Deprecated Option
-        dispatch({
-          payload: {
+        dispatch(
+          updateSetting({
             name: `${payload.listType.toLowerCase()}CleanLocalstorage`,
             value: true,
-          },
-          type: ReduxConstants.UPDATE_SETTING,
-        });
+          }),
+        );
       }
     } else {
       if (
@@ -143,13 +146,12 @@ export const updateExpression: ActionCreator<
         )
       ) {
         // Disable Deprecated Option
-        dispatch({
-          payload: {
+        dispatch(
+          updateSetting({
             name: `${payload.listType.toLowerCase()}CleanLocalstorage`,
             value: false,
-          },
-          type: ReduxConstants.UPDATE_SETTING,
-        });
+          }),
+        );
       }
     }
   }
@@ -160,10 +162,7 @@ export const removeList: ActionCreator<
   ThunkAction<void, State, unknown, UnknownAction>,
   [keyof StoreIdToExpressionList]
 > = (payload) => (dispatch, getState) => {
-  dispatch({
-    payload,
-    type: ReduxConstants.REMOVE_LIST,
-  });
+  dispatch(removeListAction(payload));
   checkIfProtected(getState());
 };
 
@@ -181,13 +180,12 @@ export const validateSettings: ActionCreator<
       initialSettings[k] !== undefined &&
       Object.keys(settings[k]).length !== Object.keys(initialSettings[k]).length
     ) {
-      dispatch({
-        payload: {
+      dispatch(
+        updateSetting({
           ...initialSettings[k],
           value: settings[k].value,
-        },
-        type: ReduxConstants.UPDATE_SETTING,
-      });
+        }),
+      );
     }
   });
 
@@ -195,23 +193,19 @@ export const validateSettings: ActionCreator<
   if (settingKeys.length !== initialSettingKeys.length) {
     initialSettingKeys.forEach((k) => {
       if (settings[k] === undefined) {
-        dispatch({
-          payload: initialSettings[k],
-          type: ReduxConstants.UPDATE_SETTING,
-        });
+        dispatch(updateSetting(initialSettings[k]));
       }
     });
   }
 
   function disableSettingIfTrue(s: Setting) {
     if (s && s.value) {
-      dispatch({
-        payload: {
+      dispatch(
+        updateSetting({
           ...s,
           value: false,
-        },
-        type: ReduxConstants.UPDATE_SETTING,
-      });
+        }),
+      );
     }
   }
 
@@ -230,23 +224,21 @@ export const validateSettings: ActionCreator<
 
   // Minimum 1 second autoclean delay.
   if ((settings[SettingID.CLEAN_DELAY].value as number) < 1) {
-    dispatch({
-      payload: {
+    dispatch(
+      updateSetting({
         name: SettingID.CLEAN_DELAY,
         value: 1,
-      },
-      type: ReduxConstants.UPDATE_SETTING,
-    });
+      }),
+    );
   }
   // Maximum 2147483 seconds due to signed 32-bit Integer (ms x 1000)
   if ((settings[SettingID.CLEAN_DELAY].value as number) > 2147483) {
-    dispatch({
-      payload: {
+    dispatch(
+      updateSetting({
         name: SettingID.CLEAN_DELAY,
         value: 2147483,
-      },
-      type: ReduxConstants.UPDATE_SETTING,
-    });
+      }),
+    );
   }
 
   // If show cookie count in badge is disabled, force change icon color instead
