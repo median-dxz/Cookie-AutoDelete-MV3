@@ -12,6 +12,7 @@
  */
 
 import { cookieCleanup } from '../redux/Actions';
+import { SettingID } from '../typings/Enums';
 import { getSetting, sleep } from './Libs';
 import StoreUser from './StoreUser';
 

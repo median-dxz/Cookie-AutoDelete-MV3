@@ -12,7 +12,8 @@
  */
 import * as React from 'react';
 import { connect } from 'react-redux';
-import { Dispatch } from 'redux';
+import type { Dispatch } from 'redux';
+import * as browser from 'webextension-polyfill';
 import { resetSettings, updateSetting } from '../../../redux/Actions';
 import { initialState } from '../../../redux/State';
 import {
@@ -21,7 +22,9 @@ import {
   isFirefox,
   isFirefoxNotAndroid,
 } from '../../../services/Libs';
-import { ReduxAction } from '../../../typings/ReduxConstants';
+import { SettingID } from '../../../typings/Enums';
+import type { CacheMap, MapToSettingObject, Setting, State } from '../../../typings/Global';
+import type { ReduxAction } from '../../../typings/ReduxConstants';
 import CheckboxSetting from '../../common_components/CheckboxSetting';
 import IconButton from '../../common_components/IconButton';
 import SelectInput from '../../common_components/SelectInput';

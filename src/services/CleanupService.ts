@@ -12,6 +12,27 @@
  */
 
 import {
+  type CookiePropertiesCleanup,
+  type CleanupPropertiesInternal,
+  type CleanReasonObject,
+  type ActivityLog,
+  type CleanupProperties,
+} from '../typings/Cleanup';
+import {
+  SettingID,
+  ListType,
+  SiteDataType,
+  OpenTabStatus,
+  ReasonClean,
+  ReasonKeep,
+  BrowserName,
+} from '../typings/Enums';
+import type { State } from '../typings/Global';
+import * as browser from 'webextension-polyfill';
+
+// If you don't have the above types, you can declare the browser namespace for typescript as follows:
+// declare const browser: typeof import('webextension-polyfill');
+import {
   CADCOOKIENAME,
   cadLog,
   extractMainDomain,
@@ -35,7 +56,7 @@ import {
 
 /** Prepare a cookie for deletion */
 export const prepareCookie = (
-  cookie: browser.cookies.Cookie,
+  cookie: browser.Cookies.Cookie,
   debug = false,
 ): CookiePropertiesCleanup => {
   const cookieProperties = {
@@ -295,7 +316,8 @@ export const cleanCookies = async (
   state: State,
   markedForDeletion: CleanReasonObject[],
 ): Promise<void> => {
-  const promiseArr: Promise<browser.cookies.Cookie | null>[] = [];
+  const promiseArr: Promise<browser.Cookies.RemoveCallbackDetailsType | null>[] =
+    [];
   markedForDeletion.forEach((obj) => {
     const cookieProperties = obj.cookie;
     const cookieAPIProperties = returnOptionalCookieAPIAttributes(state, {
@@ -326,7 +348,7 @@ export const cleanCookies = async (
 // Cleanup of all cookies for domain.
 export const clearCookiesForThisDomain = async (
   state: State,
-  tab: browser.tabs.Tab,
+  tab: browser.Tabs.Tab,
 ): Promise<boolean> => {
   const hostname = getHostname(tab.url);
   const getCookies = await browser.cookies.getAll(
@@ -393,7 +415,7 @@ export const clearCookiesForThisDomain = async (
 
 export const clearLocalStorageForThisDomain = async (
   state: State,
-  tab: browser.tabs.Tab,
+  tab: browser.Tabs.Tab,
 ): Promise<boolean> => {
   // Using this method to ensure cross browser compatibility
   try {
@@ -402,7 +424,7 @@ export const clearLocalStorageForThisDomain = async (
     const result = await browser.tabs.executeScript(undefined, {
       code: `var cad_r = {local: window.localStorage.length, session: window.sessionStorage.length};window.localStorage.clear();window.sessionStorage.clear();cad_r;`,
     });
-    result.forEach((frame: { [key: string]: any }) => {
+    (result as Array<{ [key: string]: any }>).forEach((frame) => {
       local += frame.local;
       session += frame.session;
     });
@@ -497,17 +519,17 @@ export const clearSiteDataForThisDomain = async (
 export const removeSiteData = async (
   state: State,
   siteData: SiteDataType,
-  bName: browserName = browserDetect() as browserName,
+  bName: BrowserName = browserDetect() as BrowserName,
   domains: string[],
   debug: boolean,
   manual = false,
 ): Promise<boolean> => {
-  const listName = ((b: browserName) => {
+  const listName = ((b: BrowserName) => {
     switch (b) {
-      case browserName.Chrome:
-      case browserName.Opera:
+      case BrowserName.Chrome:
+      case BrowserName.Opera:
         return 'origins';
-      case browserName.Firefox:
+      case BrowserName.Firefox:
       default:
         return 'hostnames';
     }
@@ -646,7 +668,7 @@ export const cleanSiteData = async (
   state: State,
   siteData: SiteDataType,
   cleanReasonObjects: CleanReasonObject[],
-  bName: browserName = browserDetect() as browserName,
+  bName: BrowserName = browserDetect() as BrowserName,
   debug: boolean,
 ): Promise<string[]> => {
   const domains = cleanReasonObjects
@@ -811,8 +833,8 @@ export const cleanCookiesOperation = async (
   const cookieStoreIds = new Set<string>();
 
   // Manually add default containers.
-  switch (state.cache.browserDetect || (browserDetect() as browserName)) {
-    case browserName.Firefox:
+  switch (state.cache.browserDetect || (browserDetect() as BrowserName)) {
+    case BrowserName.Firefox:
       cookieStoreIds.add('default');
       cookieStoreIds.add('firefox-default');
       if (await browser.extension.isAllowedIncognitoAccess()) {
@@ -820,8 +842,8 @@ export const cleanCookiesOperation = async (
         cookieStoreIds.add('private');
       }
       break;
-    case browserName.Chrome:
-    case browserName.Opera:
+    case BrowserName.Chrome:
+    case BrowserName.Opera:
       cookieStoreIds.add('0');
       if (await browser.extension.isAllowedIncognitoAccess()) {
         cookieStoreIds.add('1');
@@ -854,7 +876,7 @@ export const cleanCookiesOperation = async (
 
   // Clean for each cookieStore jar
   for (const id of cookieStoreIds) {
-    let cookies: browser.cookies.Cookie[] = [];
+    let cookies: browser.Cookies.Cookie[] = [];
     try {
       cookies = await browser.cookies.getAll(
         returnOptionalCookieAPIAttributes(state, {

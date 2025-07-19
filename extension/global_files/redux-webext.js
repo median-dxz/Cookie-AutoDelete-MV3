@@ -132,7 +132,7 @@ var store = void 0,
     actions = void 0,
     onDisconnect = void 0;
 
-// eslint-disable-next-line consistent-return
+ 
 function handleMessage(msg, sender, cb) {
     if (msg.type === _constants.DISPATCH) {
         var _msg$action = msg.action,

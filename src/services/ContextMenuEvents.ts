@@ -11,6 +11,7 @@
  * SOFTWARE.
  */
 
+import * as browser from 'webextension-polyfill';
 import {
   addExpressionUI,
   cookieCleanup,
@@ -33,12 +34,19 @@ import {
   SITEDATATYPES,
 } from './Libs';
 import StoreUser from './StoreUser';
+import {
+  SettingID,
+  EventListenerAction,
+  SiteDataType,
+  ListType,
+} from '../typings/Enums';
 
 export default class ContextMenuEvents extends StoreUser {
   public static MenuID = {
     ACTIVE_MODE: 'cad-active-mode',
     CLEAN: 'cad-clean',
     CLEAN_OPEN: 'cad-clean-open',
+    CLEANUP_WARNING: 'cad-cleanup-warning',
     LINK_ADD_GREY_DOMAIN: 'cad-link-add-grey-domain',
     LINK_ADD_GREY_SUBS: 'cad-link-add-grey-subs',
     LINK_ADD_WHITE_DOMAIN: 'cad-link-add-white-domain',
@@ -64,6 +72,7 @@ export default class ContextMenuEvents extends StoreUser {
   };
 
   public static menuInit(): void {
+    let separatorId = 0;
     if (!browser.contextMenus) return;
     if (
       !getSetting(
@@ -95,10 +104,12 @@ export default class ContextMenuEvents extends StoreUser {
     ContextMenuEvents.menuCreate({
       parentId: ContextMenuEvents.MenuID.PARENT_CLEAN,
       type: 'separator',
+      id: `s${separatorId++}`,
     });
     // Cleanup Warning
     ContextMenuEvents.menuCreate({
       enabled: false,
+      id: ContextMenuEvents.MenuID.CLEANUP_WARNING,
       parentId: ContextMenuEvents.MenuID.PARENT_CLEAN,
       title: browser.i18n.getMessage('cleanupActionsBypass'),
     });
@@ -114,6 +125,7 @@ export default class ContextMenuEvents extends StoreUser {
     // Separator
     ContextMenuEvents.menuCreate({
       type: 'separator',
+      id: `s${separatorId++}`,
     });
     // Add Expression Option Group - page
     ContextMenuEvents.menuCreate({
@@ -237,6 +249,7 @@ export default class ContextMenuEvents extends StoreUser {
     // Separator
     ContextMenuEvents.menuCreate({
       type: 'separator',
+      id: `s${separatorId++}`,
     });
     // Active Mode
     ContextMenuEvents.menuCreate({
@@ -314,7 +327,7 @@ export default class ContextMenuEvents extends StoreUser {
     if (browser.runtime.lastError) {
       cadLog(
         {
-          msg: `ContextMenuEvents.onCreatedOrUpdated received an error: ${browser.runtime.lastError}`,
+          msg: `ContextMenuEvents.onCreatedOrUpdated received an error: ${JSON.stringify(browser.runtime.lastError)}`,
           type: 'error',
         },
         true,
@@ -330,8 +343,10 @@ export default class ContextMenuEvents extends StoreUser {
   }
 
   public static async onContextMenuClicked(
-    info: browser.contextMenus.OnClickData,
-    tab: browser.tabs.Tab,
+    // TODO: fix this
+    // info: browser.ContextMenus.Static['OnClickData'],
+    info: any,
+    tab: browser.Tabs.Tab,
   ): Promise<void> {
     const debug = getSetting(
       StoreUser.store.getState(),
@@ -349,7 +364,7 @@ export default class ContextMenuEvents extends StoreUser {
       debug,
     );
     const cookieStoreId = (tab && tab.cookieStoreId) || '';
-    const selectionText = (info && info.selectionText) || '';
+    const selectionText: string = (info && info.selectionText) || '';
     if (
       info.menuItemId
         .toString()

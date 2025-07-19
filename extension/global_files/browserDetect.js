@@ -1,95 +1,111 @@
-/** http://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/
+/**
+ * http://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser/
+ * 
  * Updated as of 2020 March 25
  * Gets the browser name or returns an empty string if unknown.
  * This function also caches the result to provide for any
  * future calls this function has.
+ * 
+ * Updated as of 2025 July 17
+ * Make the script compatible with the Service Worker environment.
  *
- * @returns {string}
+ * @returns {string} The name of the browser (Chrome, Firefox, Safari, Opera, Edge, IE, Blink, or UnknownBrowser)
  */
 var browserDetect = function () {
-  // Return cached result if available, else get result then cache it.
-  if (browserDetect.prototype._cachedResult)
+  // Return cached result if available, otherwise, detect and cache the result.
+  if (browserDetect.prototype._cachedResult) {
     return browserDetect.prototype._cachedResult;
+  }
 
-  //Detection by duck-typing
+  let isIE = false;
+  let isEdge = false;
 
-  // Opera 8.0+
+  const detectByUserAgent = () => {
+    if (navigator.userAgent.indexOf("Chrome") !== -1) {
+      browserDetect.prototype._cachedResult = "Chrome";
+    } else if (navigator.userAgent.indexOf("Safari") !== -1) {
+      browserDetect.prototype._cachedResult = "Safari";
+    } else if (navigator.userAgent.indexOf("Firefox") !== -1) {
+      browserDetect.prototype._cachedResult = "Firefox";
+    } else if (navigator.userAgent.indexOf("Edge") !== -1) {
+      browserDetect.prototype._cachedResult = "Edge";
+    } else if (navigator.userAgent.indexOf("MSIE") !== -1) {
+      browserDetect.prototype._cachedResult = "IE";
+    } else {
+      browserDetect.prototype._cachedResult = "UnknownBrowser";
+    }
+  };
+
+  // Ensure that this code only runs in a browser environment (not Service Worker or Node.js)
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    detectByUserAgent();
+    return browserDetect.prototype._cachedResult;
+  }
+
+  // Detect Opera browser (version 8.0+)
   var isOpera =
     (!!window.opr && !!opr.addons) ||
     !!window.opera ||
-    navigator.userAgent.indexOf(' OPR/') >= 0;
+    navigator.userAgent.indexOf(" OPR/") >= 0;
 
-  // Firefox 1.0+ (InstallTrigger only available up to FF102.  Webextension API browser.contextualIdentities still only available in Firefox/Firefox Android so use that for now.)
-  var isFirefox = typeof InstallTrigger !== 'undefined' || typeof browser.contextualIdentities !== 'undefined';
+  // Detect Firefox browser (version 1.0+)
+  var isFirefox =
+    typeof InstallTrigger !== "undefined" ||
+    typeof browser.contextualIdentities !== "undefined";
 
-  // Safari 3.0+ "[object HTMLElementConstructor]"
+  // Detect Safari browser (version 3.0+)
   var isSafari =
     /constructor/i.test(window.HTMLElement) ||
     (function (p) {
-      return p.toString() === '[object SafariRemoteNotification]';
+      return p.toString() === "[object SafariRemoteNotification]";
     })(
-      !window['safari'] ||
-        // eslint-disable-next-line no-undef
-        (typeof safari !== 'undefined' && safari.pushNotification),
+      !window["safari"] ||
+        (typeof safari !== "undefined" && safari.pushNotification)
     );
 
-  // Internet Explorer 6-11
-  var isIE = /*@cc_on!@*/ false || !!document.documentMode;
+  // Detect Internet Explorer (version 6-11)
+  isIE = /*@cc_on!@*/ false || !!document.documentMode;
 
-  // Edge 20+
-  var isEdge = !isIE && !!window.StyleMedia;
+  // Detect Edge browser (version 20+)
+  isEdge = !isIE && !!window.StyleMedia;
 
-  // Chrome 1 - 79
+  // Detect Chrome browser (version 1 - 79)
   var isChrome =
     !!window.chrome && (!!window.chrome.webstore || !!window.chrome.runtime);
 
-  // Edge (based on chromium) detection
-  var isEdgeChromium = isChrome && navigator.userAgent.indexOf('Edg') !== -1;
+  // Detect Chromium-based Edge browser
+  var isEdgeChromium = isChrome && navigator.userAgent.indexOf("Edg") !== -1;
 
-  // Blink engine detection
+  // Detect Blink engine (used by Chrome, Opera, and Edge)
   var isBlink = (isChrome || isOpera) && !!window.CSS;
 
+  // Cache the detected browser type
   browserDetect.prototype._cachedResult = isFirefox
-    ? 'Firefox'
+    ? "Firefox"
     : isChrome
-    ? 'Chrome'
+    ? "Chrome"
     : isSafari
-    ? 'Safari'
+    ? "Safari"
     : isOpera
-    ? 'Opera'
+    ? "Opera"
     : isIE
-    ? 'IE'
+    ? "IE"
     : isEdge
-    ? 'Edge'
+    ? "Edge"
     : isEdgeChromium
-    ? 'EdgeChromium'
+    ? "EdgeChromium"
     : isBlink
-    ? 'Blink'
-    : 'UnknownBrowser';
+    ? "Blink"
+    : "UnknownBrowser";
 
-  if (browserDetect.prototype._cachedResult !== 'UnknownBrowser') {
+  // If the browser is detected and is not "UnknownBrowser", return the result
+  if (browserDetect.prototype._cachedResult !== "UnknownBrowser") {
     return browserDetect.prototype._cachedResult;
   } else {
-    //Detection by useragent
-    isIE = /*@cc_on!@*/ false || !!document.documentMode;
-    isEdge = !isIE && !!window.StyleMedia;
-    if (navigator.userAgent.indexOf('Chrome') !== -1 && !isEdge) {
-      browserDetect.prototype._cachedResult = 'Chrome';
-    } else if (navigator.userAgent.indexOf('Safari') !== -1 && !isEdge) {
-      browserDetect.prototype._cachedResult = 'Safari';
-    } else if (navigator.userAgent.indexOf('Firefox') !== -1) {
-      browserDetect.prototype._cachedResult = 'Firefox';
-    } else if (
-      navigator.userAgent.indexOf('MSIE') !== -1 ||
-      !!document.documentMode === true
-    ) {
-      browserDetect.prototype._cachedResult = 'IE';
-    } else if (isEdge) {
-      browserDetect.prototype._cachedResult = 'Edge';
-    } else {
-      browserDetect.prototype._cachedResult = 'UnknownBrowser';
-    }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // Fallback detection based on the user agent string if the primary method fails
+    detectByUserAgent();
+
+    // Return the final result after fallback detection
     return browserDetect.prototype._cachedResult;
   }
 };

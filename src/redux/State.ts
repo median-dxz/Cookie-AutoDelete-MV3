@@ -11,7 +11,8 @@
  * SOFTWARE.
  */
 
-// tslint:disable:object-literal-sort-keys
+import { SettingID } from "../typings/Enums";
+import type { State } from "../typings/Global";
 
 export const initialState: State = {
   lists: {},

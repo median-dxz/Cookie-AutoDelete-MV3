@@ -14,6 +14,13 @@ import * as React from 'react';
 import { connect } from 'react-redux';
 import { cadLog, isFirefox } from '../../../services/Libs';
 import IconButton from '../../common_components/IconButton';
+import { BrowserName, SettingID } from '../../../typings/Enums';
+import type {
+  CacheMap,
+  MapToSettingObject,
+  State,
+} from '../../../typings/Global';
+import * as browser from 'webextension-polyfill';
 
 const styles = {
   buttonStyle: {
@@ -27,9 +34,9 @@ interface OwnProps {
 }
 
 interface StateProps {
-  bName: browserName;
+  bName: BrowserName;
   cache: CacheMap;
-  platformInfo: browser.runtime.PlatformInfo;
+  platformInfo: browser.Runtime.PlatformInfo;
   settings: MapToSettingObject;
 }
 enum platformOS {
@@ -286,7 +293,7 @@ class About extends React.Component<AboutProps> {
 const mapStateToProps = (state: State) => {
   const { cache, settings } = state;
   return {
-    bName: cache.browserDetect || (browserDetect() as browserName),
+    bName: cache.browserDetect || (browserDetect() as BrowserName),
     cache,
     platformInfo: cache.platformInfo,
     settings,

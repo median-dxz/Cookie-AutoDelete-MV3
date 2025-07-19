@@ -13,8 +13,16 @@
 
 import { combineReducers } from 'redux';
 import shortid from 'shortid';
-import { ReduxAction, ReduxConstants } from '../typings/ReduxConstants';
+import { type ReduxAction, ReduxConstants } from '../typings/ReduxConstants';
 import { initialState } from './State';
+import type { ActivityLog } from '../typings/Cleanup';
+import { ListType } from '../typings/Enums';
+import type {
+  Expression,
+  StoreIdToExpressionList,
+  MapToSettingObject,
+  CacheMap,
+} from '../typings/Global';
 
 // Tests if the expression already exists in the list
 const hasExpression = (
@@ -238,7 +246,7 @@ export const cache = (
   }
 };
 
-export default combineReducers<State, ReduxAction>({
+export default combineReducers({
   activityLog,
   cache,
   cookieDeletedCounterSession,

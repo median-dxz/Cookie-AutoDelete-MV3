@@ -38,6 +38,10 @@ export default tsEslint.config(
   },
   {
     rules: {
+      '@typescript-eslint/no-unused-expressions': [
+        'error',
+        { allowShortCircuit: true },
+      ],
       '@typescript-eslint/no-explicit-any': 'off',
       'no-console': 'warn',
     },

@@ -13,14 +13,18 @@
 
 import * as React from 'react';
 import { connect } from 'react-redux';
-import { Dispatch } from 'redux';
+import type { Dispatch } from 'redux';
 import { cookieCleanupUI } from '../../../redux/Actions';
 import {
   clearCookiesForThisDomain,
   clearLocalStorageForThisDomain,
 } from '../../../services/CleanupService';
-import { ReduxAction } from '../../../typings/ReduxConstants';
+import type { ReduxAction } from '../../../typings/ReduxConstants';
 import CleanDataButton from './CleanDataButton';
+import type { CleanupProperties } from '../../../typings/Cleanup';
+import * as browser from 'webextension-polyfill';
+import { SiteDataType } from '../../../typings/Enums';
+import type { State } from '../../../typings/Global';
 
 interface DispatchProps {
   onCookieCleanup: (payload: CleanupProperties) => void;
@@ -28,7 +32,7 @@ interface DispatchProps {
 
 interface OwnProps {
   hostname: string;
-  tab: browser.tabs.Tab;
+  tab: browser.Tabs.Tab;
 }
 
 interface StateProps {

@@ -12,7 +12,8 @@
  */
 import { Component } from 'react';
 import { connect } from 'react-redux';
-import { Dispatch } from 'redux';
+import type { Dispatch } from 'redux';
+import * as browser from 'webextension-polyfill';
 import {
   addExpressionUI,
   cookieCleanupUI,
@@ -30,13 +31,15 @@ import {
   localFileToRegex,
   parseCookieStoreId,
 } from '../../services/Libs';
-import { FilterOptions } from '../../typings/Enums';
-import { ReduxAction } from '../../typings/ReduxConstants';
+import { FilterOptions, ListType, SettingID } from '../../typings/Enums';
+import type { ReduxAction } from '../../typings/ReduxConstants';
 import ActivityTable from '../common_components/ActivityTable';
 import IconButton from '../common_components/IconButton';
 import CleanCollapseGroup from './components/CleanCollapseGroup';
 import FilteredExpression from './components/FilteredExpression';
 import { animateFlash } from './popupLib';
+import type { CleanupProperties } from '../../typings/Cleanup';
+import type { Setting, Expression, State, CookieCountMsg } from '../../typings/Global';
 
 interface DispatchProps {
   onUpdateSetting: (newSetting: Setting) => void;
@@ -51,7 +54,7 @@ interface StateProps {
 
 class InitialState {
   public cookieCount = 0;
-  public tab: browser.tabs.Tab | undefined = undefined;
+  public tab: browser.Tabs.Tab | undefined = undefined;
   public storeId = 'default';
 }
 
@@ -59,7 +62,7 @@ type PopupAppComponentProps = DispatchProps & StateProps;
 
 class App extends Component<PopupAppComponentProps, InitialState> {
   public state = new InitialState();
-  public port: browser.runtime.Port | null = null;
+  public port: browser.Runtime.Port | null = null;
 
   public async componentDidMount() {
     document.documentElement.style.fontSize = `${

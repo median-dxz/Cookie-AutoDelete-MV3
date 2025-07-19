@@ -11,11 +11,13 @@
  * SOFTWARE.
  */
 
-import StoreUser from './StoreUser';
+import * as browser from 'webextension-polyfill';
+
 import { removeListUI } from '../redux/Actions';
-import contextualIdentitiesChangeInfo = browser.contextualIdentities.contextualIdentitiesChangeInfo;
-import { cadLog, eventListenerActions, getSetting } from './Libs';
+import { EventListenerAction, SettingID } from '../typings/Enums';
 import { ReduxConstants } from '../typings/ReduxConstants';
+import { cadLog, eventListenerActions, getSetting } from './Libs';
+import StoreUser from './StoreUser';
 
 export default class ContextualIdentitiesEvents extends StoreUser {
   public static async init(): Promise<void> {
@@ -98,7 +100,7 @@ export default class ContextualIdentitiesEvents extends StoreUser {
    * @param changeInfo The ContextualIdentity object that was created.
    */
   public static onContainerCreated(
-    changeInfo: contextualIdentitiesChangeInfo,
+    changeInfo: browser.ContextualIdentities.OnCreatedChangeInfoType,
   ): void {
     StoreUser.store.dispatch({
       payload: {
@@ -114,7 +116,7 @@ export default class ContextualIdentitiesEvents extends StoreUser {
    * @param changeInfo The ContextualIdentity Object that was removed.
    */
   public static onContainerRemoved(
-    changeInfo: contextualIdentitiesChangeInfo,
+    changeInfo: browser.ContextualIdentities.OnRemovedChangeInfoType,
   ): void {
     // Only remove expression list id if setting is enabled.
     if (
@@ -142,7 +144,7 @@ export default class ContextualIdentitiesEvents extends StoreUser {
    * @param changeInfo The ContextualIdentity Object that was updated.
    */
   public static onContainerUpdated(
-    changeInfo: contextualIdentitiesChangeInfo,
+    changeInfo: browser.ContextualIdentities.OnUpdatedChangeInfoType,
   ): void {
     const cache = StoreUser.store.getState().cache;
     if (

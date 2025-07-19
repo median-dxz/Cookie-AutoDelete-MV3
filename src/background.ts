@@ -10,7 +10,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import { Store } from 'redux';
+import type { Store } from 'redux';
+import * as browser from 'webextension-polyfill';
 import { cookieCleanup, validateSettings } from './redux/Actions';
 import createStore from './redux/Store';
 import {
@@ -18,6 +19,7 @@ import {
   setGlobalIcon,
 } from './services/BrowserActionService';
 import ContextMenuEvents from './services/ContextMenuEvents';
+import ContextualIdentitiesEvents from './services/ContextualIdentitiesEvents';
 import CookieEvents from './services/CookieEvents';
 import {
   cadLog,
@@ -27,11 +29,12 @@ import {
   getSetting,
   sleep,
 } from './services/Libs';
+import SettingService from './services/SettingService';
 import StoreUser from './services/StoreUser';
 import TabEvents from './services/TabEvents';
-import { ReduxAction, ReduxConstants } from './typings/ReduxConstants';
-import ContextualIdentitiesEvents from './services/ContextualIdentitiesEvents';
-import SettingService from './services/SettingService';
+import { BrowserName, EventListenerAction, ListType, SettingID, SiteDataType } from './typings/Enums';
+import {  type State } from './typings/Global';
+import { type ReduxAction, ReduxConstants } from './typings/ReduxConstants';
 
 let store: Store<State, ReduxAction>;
 
@@ -51,7 +54,7 @@ const saveToStorage = () => {
 
 const onStartUp = async () => {
   const mf = browser.runtime.getManifest();
-  browser.browserAction.setTitle({
+  browser.action.setTitle({
     title: `${mf.name} ${mf.version} [STARTING UP...] (0)`,
   });
   const storage = await browser.storage.local.get();
@@ -71,7 +74,7 @@ const onStartUp = async () => {
     type: ReduxConstants.ON_STARTUP,
   });
   // Store the FF version in cache
-  if (browserDetect() === browserName.Firefox) {
+  if (browserDetect() === BrowserName.Firefox) {
     const browserInfo = await browser.runtime.getBrowserInfo();
     const browserVersion = Number.parseInt(browserInfo.version);
     store.dispatch({
@@ -146,18 +149,18 @@ const onStartUp = async () => {
   if (browser.contextualIdentities) {
     await ContextualIdentitiesEvents.init();
   }
-  browser.browserAction.setTitle({
+  browser.action.setTitle({
     title: `${mf.name} ${mf.version} [READY] (0)`,
   });
 };
 
 // Keeps a memory of all runtime ports for popups.  Should only be one but just in case.
-const cookiePopupPorts: browser.runtime.Port[] = [];
+const cookiePopupPorts: browser.Runtime.Port[] = [];
 
 async function onCookiePopupUpdates(changeInfo: {
   removed: boolean;
-  cookie: browser.cookies.Cookie;
-  cause: browser.cookies.OnChangedCause;
+  cookie: browser.Cookies.Cookie;
+  cause: browser.Cookies.OnChangedCause;
 }) {
   const cDomain = extractMainDomain(changeInfo.cookie.domain);
   cookiePopupPorts.forEach((p) => {
@@ -170,7 +173,7 @@ async function onCookiePopupUpdates(changeInfo: {
   });
 }
 
-function handleConnect(p: browser.runtime.Port) {
+function handleConnect(p: browser.Runtime.Port) {
   if (!p.name || !p.name.startsWith('popupCAD_')) return;
   eventListenerActions(
     browser.cookies.onChanged,
@@ -187,7 +190,7 @@ function handleConnect(p: browser.runtime.Port) {
       true,
     );
   });
-  p.onDisconnect.addListener((dp: browser.runtime.Port) => {
+  p.onDisconnect.addListener((dp: browser.Runtime.Port) => {
     if (cookiePopupPorts.length - 1 === 0) {
       eventListenerActions(
         browser.cookies.onChanged,
@@ -196,7 +199,7 @@ function handleConnect(p: browser.runtime.Port) {
       );
     }
     if (!dp.name) return;
-    const i: number = cookiePopupPorts.findIndex((pp: browser.runtime.Port) => {
+    const i: number = cookiePopupPorts.findIndex((pp: browser.Runtime.Port) => {
       if (!pp.name) return false;
       return pp.name === dp.name;
     });

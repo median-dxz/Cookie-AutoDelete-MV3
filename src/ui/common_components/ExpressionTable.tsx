@@ -12,10 +12,13 @@
  */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { Dispatch } from 'redux';
+import type { Dispatch } from 'redux';
+import * as browser from 'webextension-polyfill';
 import { removeExpressionUI, updateExpressionUI } from '../../redux/Actions';
 import { validateExpressionDomain } from '../../services/Libs';
-import { ReduxAction } from '../../typings/ReduxConstants';
+import { ListType } from '../../typings/Enums';
+import type { Expression } from '../../typings/Global';
+import type { ReduxAction } from '../../typings/ReduxConstants';
 import ExpressionOptions from './ExpressionOptions';
 import IconButton from './IconButton';
 

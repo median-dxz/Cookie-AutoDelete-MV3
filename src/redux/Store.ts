@@ -13,8 +13,7 @@
 /* istanbul ignore file: Redux stuff.*/
 
 import { applyMiddleware, createStore } from 'redux';
-// tslint:disable-next-line:import-name
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import { createBackgroundStore } from 'redux-webext';
 import { ReduxConstants } from '../typings/ReduxConstants';
 import {

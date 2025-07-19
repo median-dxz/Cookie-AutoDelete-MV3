@@ -18,6 +18,9 @@ import { cadLog, siteDataToBrowser, SITEDATATYPES } from './Libs';
 import { checkIfProtected, setGlobalIcon } from './BrowserActionService';
 import ContextMenuEvents from './ContextMenuEvents';
 import { ReduxConstants } from '../typings/ReduxConstants';
+import { SettingID, SiteDataType } from '../typings/Enums';
+import type { MapToSettingObject } from '../typings/Global';
+import * as browser from 'webextension-polyfill';
 
 export default class SettingService extends StoreUser {
   public static init(): void {

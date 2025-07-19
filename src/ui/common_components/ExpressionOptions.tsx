@@ -10,11 +10,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import ipaddr from 'ipaddr.js';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import ipaddr from 'ipaddr.js';
 import * as React from 'react';
 import { connect } from 'react-redux';
-import { Dispatch } from 'redux';
+import type { Dispatch } from 'redux';
+import * as browser from 'webextension-polyfill';
 import { updateExpressionUI } from '../../redux/Actions';
 import {
   isChrome,
@@ -22,7 +23,10 @@ import {
   isFirefoxNotAndroid,
   returnOptionalCookieAPIAttributes,
 } from '../../services/Libs';
-import { ReduxAction } from '../../typings/ReduxConstants';
+import { ListType, SiteDataType } from '../../typings/Enums';
+import type { Expression, State } from '../../typings/Global';
+import type { ReduxAction } from '../../typings/ReduxConstants';
+
 interface DispatchProps {
   onUpdateExpression: (payload: Expression) => void;
 }
@@ -34,7 +38,7 @@ interface OwnProps {
 }
 
 class InitialState {
-  public cookies: browser.cookies.CookieProperties[] = [];
+  public cookies: browser.Cookies.Cookie[] = [];
 }
 
 type ExpressionOptionsProps = OwnProps & DispatchProps & StateProps;
@@ -83,7 +87,7 @@ class ExpressionOptions extends React.Component<ExpressionOptionsProps> {
   public async getAllCookies() {
     const { expression } = this.props;
     const exp = expression.expression;
-    let cookies: browser.cookies.CookieProperties[] = [];
+    let cookies: browser.Cookies.Cookie[] = [];
     if (exp.startsWith('/') && exp.endsWith('/')) {
       // Treat expression as regular expression.  Get all cookies then regex domain.
       const allCookies = await browser.cookies.getAll(
@@ -148,7 +152,7 @@ class ExpressionOptions extends React.Component<ExpressionOptionsProps> {
   }
 
   public createCookieList(
-    cookies: browser.cookies.CookieProperties[],
+    cookies: browser.Cookies.Cookie[],
     expression: Expression,
   ) {
     const { onUpdateExpression } = this.props;

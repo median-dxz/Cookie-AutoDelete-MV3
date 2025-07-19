@@ -11,6 +11,9 @@
  * SOFTWARE.
  */
 
+import type { ActivityLog, CleanupProperties } from "./Cleanup";
+import type { Expression, Setting, StoreIdToExpressionList } from "./Global";
+
 export const enum ReduxConstants {
   ADD_EXPRESSION = 'ADD_EXPRESSION',
   CLEAR_EXPRESSIONS = 'CLEAR_EXPRESSIONS',

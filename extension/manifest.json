@@ -1,20 +1,12 @@
 {
   "background": {
-    "scripts": [
-      "global_files/browserDetect.js",
-      "global_files/browser-polyfill.min.js",
-      "global_files/redux-webext.js",
-      "bundles/common-background-popup-setting.bundle.js",
-      "bundles/common-background.bundle.js",
-      "bundles/background.bundle.js"
-    ]
+    "service_worker": "background.js"
   },
   "description": "__MSG_extensionDescription__",
   "homepage_url": "https://github.com/Cookie-AutoDelete/Cookie-AutoDelete",
   "author": "CAD Team",
   "default_locale": "en",
-  "browser_action": {
-    "browser_style": false,
+  "action": {
     "default_icon": {
       "48": "icons/icon_48.png"
     },
@@ -25,30 +17,25 @@
     "48": "icons/icon_48.png",
     "128": "icons/icon_128.png"
   },
-  "applications": {
-    "gecko": {
-      "id": "CookieAutoDelete@kennydo.com",
-      "strict_min_version": "63.0"
-    }
-  },
   "minimum_chrome_version": "74",
   "options_ui": {
     "page": "settings/settings.html",
     "open_in_tab": true
   },
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "permissions": [
     "activeTab",
     "alarms",
     "browsingData",
     "contextMenus",
-    "contextualIdentities",
     "cookies",
     "notifications",
     "storage",
-    "tabs",
-    "<all_urls>"
+    "tabs"
   ],
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "__MSG_extensionName__",
   "version": "3.999.999"
 }

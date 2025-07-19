@@ -12,10 +12,11 @@
  */
 import * as React from 'react';
 import { connect } from 'react-redux';
-import { Dispatch } from 'redux';
+import type { Dispatch } from 'redux';
+import * as browser from 'webextension-polyfill';
 import { clearActivities } from '../../../redux/Actions';
 import { FilterOptions } from '../../../typings/Enums';
-import { ReduxAction } from '../../../typings/ReduxConstants';
+import type { ReduxAction } from '../../../typings/ReduxConstants';
 import ActivityTable from '../../common_components/ActivityTable';
 import IconButton from '../../common_components/IconButton';
 

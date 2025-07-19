@@ -12,6 +12,7 @@
  */
 
 import shortid from 'shortid';
+import * as browser from 'webextension-polyfill';
 import AlarmEvents from './AlarmEvents';
 import {
   checkIfProtected,
@@ -30,12 +31,13 @@ import {
   returnOptionalCookieAPIAttributes,
 } from './Libs';
 import StoreUser from './StoreUser';
+import { SettingID } from '../typings/Enums';
 
 export default class TabEvents extends StoreUser {
   public static onTabDiscarded(
     tabId: number,
-    changeInfo: browser.tabs.TabChangeInfo,
-    tab: browser.tabs.Tab,
+    changeInfo: browser.Tabs.OnUpdatedChangeInfoType,
+    tab: browser.Tabs.Tab,
   ): void {
     if (getSetting(StoreUser.store.getState(), SettingID.CLEAN_DISCARDED)) {
       const debug = getSetting(
@@ -69,8 +71,8 @@ export default class TabEvents extends StoreUser {
   }
   public static onTabUpdate(
     tabId: number,
-    changeInfo: browser.tabs.TabChangeInfo,
-    tab: browser.tabs.Tab,
+    changeInfo: browser.Tabs.OnUpdatedChangeInfoType,
+    tab: browser.Tabs.Tab,
   ): void {
     if (tab.status === 'complete') {
       const debug = getSetting(
@@ -122,8 +124,8 @@ export default class TabEvents extends StoreUser {
 
   public static onDomainChange(
     tabId: number,
-    changeInfo: browser.tabs.TabChangeInfo,
-    tab: browser.tabs.Tab,
+    changeInfo: browser.Tabs.OnUpdatedChangeInfoType,
+    tab: browser.Tabs.Tab,
   ): void {
     const debug = getSetting(
       StoreUser.store.getState(),
@@ -254,7 +256,7 @@ export default class TabEvents extends StoreUser {
   };
 
   public static getAllCookieActions = async (
-    tab: browser.tabs.Tab,
+    tab: browser.Tabs.Tab,
   ): Promise<void> => {
     if (!tab.url || tab.url === '') return;
     if (tab.url.startsWith('about:') || tab.url.startsWith('chrome:')) return;

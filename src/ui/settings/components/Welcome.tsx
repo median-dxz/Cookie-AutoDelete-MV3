@@ -12,12 +12,14 @@
  */
 import * as React from 'react';
 import { connect } from 'react-redux';
-import { Dispatch } from 'redux';
-// tslint:disable-next-line: import-name
-import ReleaseNotes from '../ReleaseNotes.json';
-import IconButton from '../../common_components/IconButton';
-import { ReduxAction } from '../../../typings/ReduxConstants';
+import type { Dispatch } from 'redux';
+import * as browser from 'webextension-polyfill';
 import { resetCookieDeletedCounter } from '../../../redux/Actions';
+import { BrowserName } from '../../../typings/Enums';
+import type { ReleaseNote, State } from '../../../typings/Global';
+import type { ReduxAction } from '../../../typings/ReduxConstants';
+import IconButton from '../../common_components/IconButton';
+import ReleaseNotes from '../ReleaseNotes.json';
 
 const displayReleaseNotes = (releases: ReleaseNote[]) => {
   return (
@@ -43,13 +45,13 @@ const displayReleaseNotes = (releases: ReleaseNote[]) => {
 };
 
 // Get the review link for different browsers
-const getReviewLink = (bName: browserName = browserDetect() as browserName) => {
+const getReviewLink = (bName: BrowserName = browserDetect() as BrowserName) => {
   switch (bName) {
-    case browserName.Chrome:
+    case BrowserName.Chrome:
       return 'https://chrome.google.com/webstore/detail/cookie-autodelete/fhcgjolkccmbidfldomjliifgaodjagh/reviews';
-    case browserName.EdgeChromium:
+    case BrowserName.EdgeChromium:
       return 'https://microsoftedge.microsoft.com/addons/detail/djkjpnciiommncecmdefpdllknjdmmmo#reviewList';
-    case browserName.Firefox:
+    case BrowserName.Firefox:
       return 'https://addons.mozilla.org/en-US/firefox/addon/cookie-autodelete/reviews/';
     default:
       return '';
@@ -60,7 +62,7 @@ interface OwnProps {
   style?: React.CSSProperties;
   cookieDeletedCounterSession: number;
   cookieDeletedCounterTotal: number;
-  bName: browserName;
+  bName: BrowserName;
 }
 
 interface DispatchProps {
@@ -138,7 +140,7 @@ const mapStateToProps = (state: State) => {
   const { cookieDeletedCounterTotal, cookieDeletedCounterSession, cache } =
     state;
   return {
-    bName: cache.browserDetect || (browserDetect() as browserName),
+    bName: cache.browserDetect || (browserDetect() as BrowserName),
     cookieDeletedCounterSession,
     cookieDeletedCounterTotal,
   };

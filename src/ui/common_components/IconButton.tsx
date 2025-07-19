@@ -10,12 +10,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import { IconProp } from '@fortawesome/fontawesome-svg-core';
+import type { IconProp } from '@fortawesome/fontawesome-svg-core';
 import {
   FontAwesomeIcon,
-  FontAwesomeIconProps,
+  type FontAwesomeIconProps,
 } from '@fortawesome/react-fontawesome';
-import * as React from 'react';
+import React from 'react';
 
 interface IconButtonProps {
   accept?: string;
@@ -47,7 +47,9 @@ export default function IconButton({
 }: IconButtonProps) {
   // Has to be PascalCase, else JSX will think it's a tag named 'tagName'.
   // Determine the element type; input tags are wrapped in a label
-  const TagName = (tag === 'input' ? 'label' : tag) as React.ElementType;
+  const TagName = (
+    tag === 'input' ? 'label' : (tag ?? 'span')
+  ) as React.ElementType;
 
   return (
     <TagName
@@ -80,5 +82,3 @@ export default function IconButton({
     </TagName>
   );
 }
-
-IconButton;

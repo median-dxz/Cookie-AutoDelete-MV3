@@ -12,7 +12,8 @@
  */
 import * as React from 'react';
 import { connect } from 'react-redux';
-import { Dispatch } from 'redux';
+import type { Dispatch } from 'redux';
+import * as browser from 'webextension-polyfill';
 import {
   addExpressionUI,
   clearExpressionsUI,
@@ -24,11 +25,18 @@ import {
   getSetting,
   validateExpressionDomain,
 } from '../../../services/Libs';
-import { ReduxAction } from '../../../typings/ReduxConstants';
+import { BrowserName, ListType, SettingID } from '../../../typings/Enums';
+import type {
+  Expression,
+  State,
+  StoreIdToExpressionList,
+} from '../../../typings/Global';
+import type { ReduxAction } from '../../../typings/ReduxConstants';
 import ExpressionTable from '../../common_components/ExpressionTable';
 import IconButton from '../../common_components/IconButton';
 import { downloadObjectAsJSON } from '../../UILibs';
 import SettingsTooltip from './SettingsTooltip';
+
 const styles = {
   buttonStyle: {
     height: 'max-content',
@@ -46,7 +54,7 @@ interface OwnProps {
 }
 
 interface StateProps {
-  bName: browserName;
+  bName: BrowserName;
   contextualIdentities: boolean;
   debug: boolean;
   lists: StoreIdToExpressionList;
@@ -61,7 +69,7 @@ interface DispatchProps {
 type ExpressionProps = OwnProps & StateProps & DispatchProps;
 
 class InitialState {
-  public contextualIdentitiesObjects: browser.contextualIdentities.ContextualIdentity[] =
+  public contextualIdentitiesObjects: browser.ContextualIdentities.ContextualIdentity[] =
     [];
   public error = '';
   public expressionInput = '';
@@ -313,10 +321,10 @@ class Expressions extends React.Component<ExpressionProps> {
     containers.add(
       ((browser) => {
         switch (browser) {
-          case browserName.Chrome:
-          case browserName.Opera:
+          case BrowserName.Chrome:
+          case BrowserName.Opera:
             return '0';
-          case browserName.Firefox:
+          case BrowserName.Firefox:
           default:
             return 'firefox-default';
         }
@@ -660,7 +668,7 @@ class Expressions extends React.Component<ExpressionProps> {
 const mapStateToProps = (state: State) => {
   const { cache, lists } = state;
   return {
-    bName: cache.browserDetect || (browserDetect() as browserName),
+    bName: cache.browserDetect || (browserDetect() as BrowserName),
     cache,
     contextualIdentities: getSetting(
       state,

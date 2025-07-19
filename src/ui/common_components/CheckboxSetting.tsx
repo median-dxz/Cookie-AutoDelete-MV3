@@ -12,6 +12,7 @@
  */
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import * as React from 'react';
+import type { Setting } from '../../typings/Global';
 interface OwnProps {
   inline?: boolean;
   settingObject: Setting;

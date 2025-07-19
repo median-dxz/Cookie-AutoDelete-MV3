@@ -11,6 +11,7 @@
  * SOFTWARE.
  */
 
+import * as browser from 'webextension-polyfill';
 import { extractMainDomain, getHostname } from './Libs';
 import StoreUser from './StoreUser';
 import TabEvents from './TabEvents';
@@ -18,8 +19,8 @@ import TabEvents from './TabEvents';
 export default class CookieEvents extends StoreUser {
   public static async onCookieChanged(changeInfo: {
     removed: boolean;
-    cookie: browser.cookies.Cookie;
-    cause: browser.cookies.OnChangedCause;
+    cookie: browser.Cookies.Cookie;
+    cause: browser.Cookies.OnChangedCause;
   }): Promise<void> {
     // Truncate cookie value (purely for debug)
     changeInfo.cookie.value = '***';
@@ -37,7 +38,11 @@ export default class CookieEvents extends StoreUser {
         extractMainDomain(changeInfo.cookie.domain)
       ) {
         // Force Tab Update function
-        TabEvents.onTabUpdate(tab.id, { cookieChanged: changeInfo }, tab);
+        TabEvents.onTabUpdate(
+          tab.id,
+          { cookieChanged: changeInfo } as any,
+          tab,
+        );
       }
     });
   }

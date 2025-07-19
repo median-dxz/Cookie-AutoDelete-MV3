@@ -13,6 +13,10 @@
 
 import ipaddr from 'ipaddr.js';
 import shortid from 'shortid';
+import * as browser from 'webextension-polyfill';
+import type { CookiePropertiesCleanup } from '../typings/Cleanup';
+import type { CacheMap, CADLogItem, Expression, State, StoreIdToExpressionList } from '../typings/Global';
+import { BrowserName, EventListenerAction, ListType, SettingID, SiteDataType } from '../typings/Enums';
 
 /* --- CONSTANTS --- */
 export const CADCOOKIENAME = 'CookieAutoDeleteBrowsingDataCleanup';
@@ -83,8 +87,8 @@ export const cadLog = (x: CADLogItem, output: boolean): void => {
  * Create Partial Cookie info for debug
  */
 export const createPartialTabInfo = (
-  tab: Partial<browser.tabs.Tab>,
-): Partial<browser.tabs.Tab> => {
+  tab: Partial<browser.Tabs.Tab>,
+): Partial<browser.Tabs.Tab> => {
   return {
     cookieStoreId: tab.cookieStoreId,
     discarded: tab.discarded,
@@ -111,7 +115,7 @@ export const convertVersionToNumber = (version?: string): number => {
  * @param action The EventListenerAction (add/remove).
  */
 export const eventListenerActions = (
-  event: EvListener<any>,
+  event: browser.Events.Event<any>,
   listener: (...args: any[]) => void,
   action: EventListenerAction,
 ): void => {
@@ -180,8 +184,8 @@ export const extractMainDomain = (domain: string): string => {
  */
 export const getAllCookiesForDomain = async (
   state: State,
-  tab: browser.tabs.Tab,
-): Promise<browser.cookies.Cookie[] | undefined> => {
+  tab: browser.Tabs.Tab,
+): Promise<browser.Cookies.Cookie[] | undefined> => {
   if (!tab.url || tab.url === '') return;
   if (tab.url.startsWith('about:') || tab.url.startsWith('chrome:')) return;
   const debug = getSetting(state, SettingID.DEBUG_MODE) as boolean;
@@ -198,7 +202,7 @@ export const getAllCookiesForDomain = async (
     );
     return;
   }
-  const cookies: browser.cookies.Cookie[] = [];
+  const cookies: browser.Cookies.Cookie[] = [];
   const mainDomain = extractMainDomain(hostname);
 
   if (hostname.startsWith('file:')) {
@@ -482,7 +486,7 @@ export const getStoreId = (state: State, storeId: string): string => {
       storeId !== 'firefox-private' &&
       isFirefox(state.cache)) ||
     (isChrome(state.cache) && storeId === '0') ||
-    (state.cache.browserDetect === browserName.Opera && storeId === '0')
+    (state.cache.browserDetect === BrowserName.Opera && storeId === '0')
   ) {
     return 'default';
   }
@@ -542,7 +546,7 @@ export const isAWebpage = (URL: string | undefined): boolean => {
 export const isChrome = (cache: CacheMap): boolean => {
   return (
     Object.prototype.hasOwnProperty.call(cache, 'browserDetect') &&
-    cache.browserDetect === browserName.Chrome
+    cache.browserDetect === BrowserName.Chrome
   );
 };
 
@@ -553,7 +557,7 @@ export const isChrome = (cache: CacheMap): boolean => {
 export const isFirefox = (cache: CacheMap): boolean => {
   return (
     Object.prototype.hasOwnProperty.call(cache, 'browserDetect') &&
-    cache.browserDetect === browserName.Firefox
+    cache.browserDetect === BrowserName.Firefox
   );
 };
 
@@ -680,7 +684,7 @@ export const parseCookieStoreId = (
  */
 export const prepareCleanupDomains = (
   domain: string,
-  bName: browserName = browserDetect() as browserName,
+  bName: BrowserName = browserDetect() as BrowserName,
 ): string[] => {
   if (domain.trim() === '') return [];
   let d: string = domain.trim();
@@ -707,7 +711,7 @@ export const prepareCleanupDomains = (
     }
   }
 
-  if (bName === browserName.Chrome || bName === browserName.Opera) {
+  if (bName === BrowserName.Chrome || bName === BrowserName.Opera) {
     const origins: string[] = [];
     for (const d of domains) {
       origins.push(`http://${d}`);
@@ -722,7 +726,7 @@ export const prepareCleanupDomains = (
 /**
  * Puts the domain in the right format for browser.cookies.remove()
  */
-export const prepareCookieDomain = (cookie: browser.cookies.Cookie): string => {
+export const prepareCookieDomain = (cookie: browser.Cookies.Cookie): string => {
   let cookieDomain = cookie.domain.trim();
   if (cookieDomain.length === 0 && cookie.path.trim().length !== 0) {
     // No Domain - presuming local file (file:// protocol)

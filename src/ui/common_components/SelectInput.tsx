@@ -11,6 +11,8 @@
  * SOFTWARE.
  */
 import * as React from 'react';
+import type { Setting } from '../../typings/Global';
+
 interface OwnProps {
   numSize?: number;
   numStart?: number;

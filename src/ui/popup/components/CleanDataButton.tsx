@@ -18,6 +18,9 @@ import {
   clearSiteDataForThisDomain,
 } from '../../../services/CleanupService';
 import { animateFlash } from '../popupLib';
+import type { SiteDataType } from '../../../typings/Enums';
+import * as browser from 'webextension-polyfill';
+import type { State } from '../../../typings/Global';
 
 interface OwnProps {
   altColor?: boolean;
@@ -25,7 +28,7 @@ interface OwnProps {
   hostname?: string;
   onClick?: () => Promise<boolean>;
   siteData?: SiteDataType | 'All';
-  tab?: browser.tabs.Tab;
+  tab?: browser.Tabs.Tab;
   title?: string;
   text?: string;
 }
@@ -38,7 +41,7 @@ const cleanSiteDataUI = async (
   state: State,
   siteData: SiteDataType | 'All',
   hostname: string,
-  tab?: browser.tabs.Tab,
+  tab?: browser.Tabs.Tab,
 ): Promise<boolean> => {
   if (!hostname) return false;
   let result = await clearSiteDataForThisDomain(state, siteData, hostname);

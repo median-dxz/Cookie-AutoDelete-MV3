@@ -12,12 +12,14 @@
  */
 import * as React from 'react';
 import { connect } from 'react-redux';
-import { Dispatch } from 'redux';
+import type { Dispatch } from 'redux';
 import { resetAll } from '../../redux/Actions';
 import { cadLog } from '../../services/Libs';
-import { ReduxAction } from '../../typings/ReduxConstants';
+import type { ReduxAction } from '../../typings/ReduxConstants';
 import { downloadObjectAsJSON } from '../UILibs';
 import IconButton from './IconButton';
+import type { State } from '../../typings/Global';
+import * as browser from 'webextension-polyfill';
 
 // This fixes the error thrown when upgrading react-redux from 7.1.7 to 7.1.8
 interface ChildrenProps {

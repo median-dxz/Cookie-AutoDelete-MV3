@@ -12,8 +12,10 @@
  */
 import * as React from 'react';
 import { connect } from 'react-redux';
+import * as browser from 'webextension-polyfill';
 
 import { getMatchedExpressions } from '../../../services/Libs';
+import type { Expression, State } from '../../../typings/Global';
 import ExpressionTable from '../../common_components/ExpressionTable';
 
 interface OwnProps {
