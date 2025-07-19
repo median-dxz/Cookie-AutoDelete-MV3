@@ -12,14 +12,14 @@
  */
 import * as React from 'react';
 import { connect } from 'react-redux';
-import type { Dispatch } from 'redux';
 import * as browser from 'webextension-polyfill';
-import { resetCookieDeletedCounter } from '../../../redux/Actions';
+
 import { BrowserName } from '../../../typings/Enums';
-import type { ReleaseNote, State } from '../../../typings/Global';
-import type { ReduxAction } from '../../../typings/ReduxConstants';
+import type { ReleaseNote } from '../../../typings/Global';
 import IconButton from '../../common_components/IconButton';
 import ReleaseNotes from '../ReleaseNotes.json';
+import { resetCookieDeletedCounter } from '../../../redux/CookieDeletedCounterSlices';
+import type { Dispatch, State } from '../../../redux/Store';
 
 const displayReleaseNotes = (releases: ReleaseNote[]) => {
   return (
@@ -130,7 +130,7 @@ const Welcome: React.FunctionComponent<WelcomeProps> = ({
   );
 };
 
-const mapDispatchToProps = (dispatch: Dispatch<ReduxAction>) => ({
+const mapDispatchToProps = (dispatch: Dispatch) => ({
   onResetCounterButtonClick() {
     dispatch(resetCookieDeletedCounter());
   },
@@ -140,7 +140,7 @@ const mapStateToProps = (state: State) => {
   const { cookieDeletedCounterTotal, cookieDeletedCounterSession, cache } =
     state;
   return {
-    bName: cache.browserDetect || (browserDetect() as BrowserName),
+    bName: cache.browserDetect || browserDetect(),
     cookieDeletedCounterSession,
     cookieDeletedCounterTotal,
   };

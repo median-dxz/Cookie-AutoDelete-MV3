@@ -12,13 +12,7 @@
  */
 import { Component } from 'react';
 import { connect } from 'react-redux';
-import type { Dispatch } from 'redux';
 import * as browser from 'webextension-polyfill';
-import {
-  addExpressionUI,
-  cookieCleanupUI,
-  updateSetting,
-} from '../../redux/Actions';
 import {
   CADCOOKIENAME,
   extractMainDomain,
@@ -32,14 +26,16 @@ import {
   parseCookieStoreId,
 } from '../../services/Libs';
 import { FilterOptions, ListType, SettingID } from '../../typings/Enums';
-import type { ReduxAction } from '../../typings/ReduxConstants';
 import ActivityTable from '../common_components/ActivityTable';
 import IconButton from '../common_components/IconButton';
 import CleanCollapseGroup from './components/CleanCollapseGroup';
 import FilteredExpression from './components/FilteredExpression';
 import { animateFlash } from './popupLib';
 import type { CleanupProperties } from '../../typings/Cleanup';
-import type { Setting, Expression, State, CookieCountMsg } from '../../typings/Global';
+import type { Setting, Expression, CookieCountMsg } from '../../typings/Global';
+import type { Dispatch, State } from '../../redux/Store';
+import { updateSetting } from '../../redux/SettingsSlice';
+import { addExpressionUI, cookieCleanupUI } from '../../redux/UIActions';
 
 interface DispatchProps {
   onUpdateSetting: (newSetting: Setting) => void;
@@ -440,7 +436,7 @@ const mapStateToProps = (state: State) => {
   };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch<ReduxAction>) => ({
+const mapDispatchToProps = (dispatch: Dispatch) => ({
   onUpdateSetting(newSetting: Setting) {
     dispatch(updateSetting(newSetting));
   },

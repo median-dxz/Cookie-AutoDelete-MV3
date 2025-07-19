@@ -11,10 +11,9 @@
  * SOFTWARE.
  */
 import * as React from 'react';
-import { connect } from 'react-redux';
-import type { Dispatch } from 'redux';
+import { useCallback } from 'react';
 import * as browser from 'webextension-polyfill';
-import { removeActivity } from '../../redux/Actions';
+import type { State } from '../../redux/Store';
 import {
   cadLog,
   getSetting,
@@ -22,6 +21,7 @@ import {
   siteDataToBrowser,
   throwErrorNotification,
 } from '../../services/Libs';
+import type { ActivityLog, CleanReasonObject } from '../../typings/Cleanup';
 import {
   FilterOptions,
   ListType,
@@ -30,10 +30,14 @@ import {
   SettingID,
   SiteDataType,
 } from '../../typings/Enums';
-import type { ReduxAction } from '../../typings/ReduxConstants';
+import { useUIDispatch, useUISelector } from '../hooks';
 import IconButton from './IconButton';
-import type { ActivityLog, CleanReasonObject } from '../../typings/Cleanup';
-import type { CacheMap, State } from '../../typings/Global';
+
+import {
+  removeActivity,
+  selectActivityLog,
+} from '../../redux/ActivityLogSlice';
+import { selectCache } from '../../redux/CacheSlice';
 
 const createSummary = (cleanupObj: ActivityLog) => {
   const domainSet = new Set<string>();
@@ -122,22 +126,12 @@ const returnReasonMessages = (cleanReasonObject: CleanReasonObject) => {
 
 type ActivityAction = (log: ActivityLog) => void;
 
-interface StateProps {
-  activityLog: ReadonlyArray<ActivityLog>;
-  cache: CacheMap;
-  state: State;
-}
-
-interface DispatchProps {
-  onRemoveActivity: ActivityAction;
-}
-
 interface OwnProps {
   decisionFilter: FilterOptions;
   numberToShow?: number;
 }
 
-type ActivityTableProps = OwnProps & StateProps & DispatchProps;
+type ActivityTableProps = OwnProps;
 
 const restoreCookies = async (
   state: State,
@@ -243,8 +237,24 @@ const restoreCookies = async (
 };
 
 const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
-  const { activityLog, cache, numberToShow, state, onRemoveActivity } = props;
-  if (props.activityLog.length === 0) {
+  const { numberToShow } = props;
+  const dispatch = useUIDispatch();
+  const { cache, activityLog, state } = useUISelector((state) => {
+    return {
+      state,
+      cache: selectCache(state),
+      activityLog: selectActivityLog(state),
+    };
+  });
+
+  const onRemoveActivity = useCallback(
+    (activity: ActivityLog) => {
+      dispatch(removeActivity(activity));
+    },
+    [dispatch],
+  );
+
+  if (activityLog.length === 0) {
     return (
       <div className="alert alert-primary" role="alert">
         <i>
@@ -372,19 +382,4 @@ const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
   );
 };
 
-const mapStateToProps = (state: State) => {
-  const { activityLog, cache } = state;
-  return {
-    activityLog,
-    cache,
-    state,
-  };
-};
-
-const mapDispatchToProps = (dispatch: Dispatch<ReduxAction>) => ({
-  onRemoveActivity(activity: ActivityLog) {
-    dispatch(removeActivity(activity));
-  },
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(ActivityTable);
+export default ActivityTable;

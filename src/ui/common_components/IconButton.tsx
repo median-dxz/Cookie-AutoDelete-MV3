@@ -48,7 +48,7 @@ export default function IconButton({
   // Has to be PascalCase, else JSX will think it's a tag named 'tagName'.
   // Determine the element type; input tags are wrapped in a label
   const TagName = (
-    tag === 'input' ? 'label' : (tag ?? 'span')
+    tag === 'input' ? 'label' : (tag ?? 'button')
   ) as React.ElementType;
 
   return (

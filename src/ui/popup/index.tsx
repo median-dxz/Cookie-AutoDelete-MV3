@@ -14,20 +14,31 @@
  */
 import { createRoot } from 'react-dom/client';
 import { Provider } from 'react-redux';
-import { createUIStore } from 'redux-webext';
-import { isChrome, sleep } from '../../services/Libs';
+import { applyMiddleware, Store } from 'webext-redux';
+import { isChrome } from '../../services/Libs';
 import ErrorBoundary from '../common_components/ErrorBoundary';
 import fontAwesomeImports from '../font-awesome-imports';
 import App from './App';
+import { configureStore } from '@reduxjs/toolkit';
+import type { State } from '../../redux/Store';
 
 fontAwesomeImports();
 
+let store: Store<State>;
+
+// Just for middleware registration
+configureStore({
+  reducer: {},
+  middleware(getDefaultMiddleware) {
+    const middleware = getDefaultMiddleware();
+    store = applyMiddleware(store, ...middleware);
+    return middleware;
+  },
+});
+
 async function initApp() {
-  let store = await createUIStore();
-  while (!store.getState()) {
-    await sleep(250);
-    store = await createUIStore();
-  }
+  await store.ready();
+
   const mountNode = document.createElement('div');
   document.body.appendChild(mountNode);
 

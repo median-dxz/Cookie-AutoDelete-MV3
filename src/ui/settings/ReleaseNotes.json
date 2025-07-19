@@ -1,6 +1,10 @@
 {
   "releases": [
     {
+      "version": "3.9.0",
+      "notes": []
+    },
+    {
       "version": "3.8.2",
       "notes": [
         "Fixed:  Passing IP Addresses to browsingData / site data cleanups. Fixes #983 via PR#1451, with thanks to Rob W.",

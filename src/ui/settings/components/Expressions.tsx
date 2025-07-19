@@ -12,13 +12,12 @@
  */
 import * as React from 'react';
 import { connect } from 'react-redux';
-import type { Dispatch } from 'redux';
 import * as browser from 'webextension-polyfill';
 import {
   addExpressionUI,
   clearExpressionsUI,
   removeListUI,
-} from '../../../redux/Actions';
+} from '../../../redux/UIActions';
 import {
   cadLog,
   getMatchedExpressions,
@@ -28,14 +27,13 @@ import {
 import { BrowserName, ListType, SettingID } from '../../../typings/Enums';
 import type {
   Expression,
-  State,
   StoreIdToExpressionList,
 } from '../../../typings/Global';
-import type { ReduxAction } from '../../../typings/ReduxConstants';
 import ExpressionTable from '../../common_components/ExpressionTable';
 import IconButton from '../../common_components/IconButton';
 import { downloadObjectAsJSON } from '../../UILibs';
 import SettingsTooltip from './SettingsTooltip';
+import type { Dispatch, State } from '../../../redux/Store';
 
 const styles = {
   buttonStyle: {
@@ -679,7 +677,7 @@ const mapStateToProps = (state: State) => {
   };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch<ReduxAction>) => ({
+const mapDispatchToProps = (dispatch: Dispatch) => ({
   onClearExpressions(payload: StoreIdToExpressionList) {
     dispatch(clearExpressionsUI(payload));
   },

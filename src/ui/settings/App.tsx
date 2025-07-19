@@ -20,8 +20,8 @@ import Expressions from './components/Expressions';
 import Settings from './components/Settings';
 import SideBar from './components/SideBar';
 import Welcome from './components/Welcome';
-import type { State } from '../../typings/Global';
 import { SettingID } from '../../typings/Enums';
+import type { State } from '../../redux/Store';
 
 interface OwnProps {
   sizeSetting: number;

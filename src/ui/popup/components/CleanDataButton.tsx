@@ -11,16 +11,16 @@
  * SOFTWARE.
  */
 import * as React from 'react';
-import { connect } from 'react-redux';
+import * as browser from 'webextension-polyfill';
+import type { State } from '../../../redux/Store';
 import {
   clearCookiesForThisDomain,
   clearLocalStorageForThisDomain,
   clearSiteDataForThisDomain,
 } from '../../../services/CleanupService';
-import { animateFlash } from '../popupLib';
 import type { SiteDataType } from '../../../typings/Enums';
-import * as browser from 'webextension-polyfill';
-import type { State } from '../../../typings/Global';
+import { useUISelector } from '../../hooks';
+import { animateFlash } from '../popupLib';
 
 interface OwnProps {
   altColor?: boolean;
@@ -31,10 +31,6 @@ interface OwnProps {
   tab?: browser.Tabs.Tab;
   title?: string;
   text?: string;
-}
-
-interface StateProps {
-  state: State;
 }
 
 const cleanSiteDataUI = async (
@@ -57,21 +53,21 @@ const cleanSiteDataUI = async (
   return result;
 };
 
-const CleanDataButton: React.FunctionComponent<OwnProps & StateProps> = (
-  props,
-) => {
+const CleanDataButton: React.FunctionComponent<OwnProps> = (props) => {
   const {
     altColor,
     btnColor,
     hostname,
     onClick,
     siteData,
-    state,
     tab,
     title,
     text,
     ...nativeProps
   } = props;
+
+  const state = useUISelector((state: State) => state);
+
   return (
     <button
       aria-controls="cleanCollapse"
@@ -107,10 +103,4 @@ const CleanDataButton: React.FunctionComponent<OwnProps & StateProps> = (
   );
 };
 
-const mapStateToProps = (state: State) => {
-  return {
-    state,
-  };
-};
-
-export default connect(mapStateToProps)(CleanDataButton);
+export default CleanDataButton;

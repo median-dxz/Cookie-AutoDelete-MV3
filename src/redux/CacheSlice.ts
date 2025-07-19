@@ -39,5 +39,6 @@ const cacheSlice = createSlice({
 });
 
 export const { addCache } = cacheSlice.actions;
+export const selectCache = cacheSlice.selectSlice;
 
 export default cacheSlice.reducer;

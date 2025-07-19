@@ -11,7 +11,7 @@ import { resetAll } from './SharedActions';
 const initialState: ReadonlyArray<ActivityLog> = [];
 
 const actions = {
-  clearActivity: createAction(ReduxConstants.CLEAR_ACTIVITY_LOG),
+  clearActivities: createAction(ReduxConstants.CLEAR_ACTIVITY_LOG),
   resetAll,
 };
 
@@ -35,16 +35,18 @@ const activityLogSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addMatcher(
-        isAnyOf(actions.resetAll, actions.clearActivity),
+        isAnyOf(actions.resetAll, actions.clearActivities),
         () => initialState,
       )
       .addDefaultCase((state) => state);
   },
 });
 
-export const { addActivity, removeActivity, clearActivity } = {
+export const { addActivity, removeActivity, clearActivities } = {
   ...activityLogSlice.actions,
   ...actions,
 };
+
+export const selectActivityLog = activityLogSlice.selectSlice;
 
 export default activityLogSlice.reducer;

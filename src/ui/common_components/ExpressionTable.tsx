@@ -12,15 +12,14 @@
  */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import type { Dispatch } from 'redux';
 import * as browser from 'webextension-polyfill';
-import { removeExpressionUI, updateExpressionUI } from '../../redux/Actions';
 import { validateExpressionDomain } from '../../services/Libs';
 import { ListType } from '../../typings/Enums';
 import type { Expression } from '../../typings/Global';
-import type { ReduxAction } from '../../typings/ReduxConstants';
 import ExpressionOptions from './ExpressionOptions';
 import IconButton from './IconButton';
+import type { Dispatch } from '../../redux/Store';
+import { removeExpressionUI, updateExpressionUI } from '../../redux/UIActions';
 
 class EmptyState {
   public expressionInput = '';
@@ -317,7 +316,7 @@ class ExpressionTable extends Component<ExpressionTableProps, EmptyState> {
   }
 }
 
-const mapDispatchToProps = (dispatch: Dispatch<ReduxAction>) => ({
+const mapDispatchToProps = (dispatch: Dispatch) => ({
   onRemoveExpression(payload: Expression) {
     dispatch(removeExpressionUI(payload));
   },

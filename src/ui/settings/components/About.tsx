@@ -15,12 +15,9 @@ import { connect } from 'react-redux';
 import { cadLog, isFirefox } from '../../../services/Libs';
 import IconButton from '../../common_components/IconButton';
 import { BrowserName, SettingID } from '../../../typings/Enums';
-import type {
-  CacheMap,
-  MapToSettingObject,
-  State,
-} from '../../../typings/Global';
+import type { CacheMap, MapToSettingObject } from '../../../typings/Global';
 import * as browser from 'webextension-polyfill';
+import type { State } from '../../../redux/Store';
 
 const styles = {
   buttonStyle: {
@@ -171,7 +168,7 @@ class About extends React.Component<AboutProps> {
             platformOS[platformInfo.os]
           } (Please add OS version on paste)\n- Browser Info: ${bName} ${
             isFirefox(cache)
-              ? `${cache.browserVersion} (${cache.browserInfo.buildID})`
+              ? `${cache.browserVersion} (${(cache.browserInfo as { buildID: string }).buildID})`
               : `(Please add version number on paste)`
           }\n- CookieAutoDelete Version: ${
             browser.runtime.getManifest().version
@@ -293,9 +290,9 @@ class About extends React.Component<AboutProps> {
 const mapStateToProps = (state: State) => {
   const { cache, settings } = state;
   return {
-    bName: cache.browserDetect || (browserDetect() as BrowserName),
+    bName: cache.browserDetect || browserDetect(),
     cache,
-    platformInfo: cache.platformInfo,
+    platformInfo: cache.platformInfo as browser.Runtime.PlatformInfo,
     settings,
   };
 };

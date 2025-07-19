@@ -12,10 +12,14 @@
  */
 import * as React from 'react';
 import { connect } from 'react-redux';
-import type { Dispatch } from 'redux';
+
 import * as browser from 'webextension-polyfill';
-import { resetSettings, updateSetting } from '../../../redux/Actions';
-import { initialState } from '../../../redux/State';
+import {
+  initialState as initialSettings,
+  resetSettings,
+  updateSetting,
+} from '../../../redux/SettingsSlice';
+import type { Dispatch, State } from '../../../redux/Store';
 import {
   cadLog,
   isChrome,
@@ -23,8 +27,11 @@ import {
   isFirefoxNotAndroid,
 } from '../../../services/Libs';
 import { SettingID } from '../../../typings/Enums';
-import type { CacheMap, MapToSettingObject, Setting, State } from '../../../typings/Global';
-import type { ReduxAction } from '../../../typings/ReduxConstants';
+import type {
+  CacheMap,
+  MapToSettingObject,
+  Setting,
+} from '../../../typings/Global';
 import CheckboxSetting from '../../common_components/CheckboxSetting';
 import IconButton from '../../common_components/IconButton';
 import SelectInput from '../../common_components/SelectInput';
@@ -94,7 +101,7 @@ class Settings extends React.Component<SettingProps> {
       return;
     }
     const { onUpdateSetting } = this.props;
-    const initialSettingKeys = Object.keys(initialState.settings);
+    const initialSettingKeys = Object.keys(initialSettings);
     const reader = new FileReader();
     reader.onload = (file) => {
       try {
@@ -214,7 +221,7 @@ class Settings extends React.Component<SettingProps> {
     const { cache, onResetButtonClick, onUpdateSetting, settings, style } =
       this.props;
     const { error, success } = this.state;
-    const ffVersion = Number.parseInt(cache.browserVersion);
+    const ffVersion = Number.parseInt(cache.browserVersion as string);
     return (
       <div style={style}>
         <h1>{browser.i18n.getMessage('settingsText')}</h1>
@@ -708,7 +715,7 @@ const mapStateToProps = (state: State) => {
   };
 };
 
-const mapDispatchToProps = (dispatch: Dispatch<ReduxAction>) => ({
+const mapDispatchToProps = (dispatch: Dispatch) => ({
   onUpdateSetting(newSetting: Setting) {
     dispatch(updateSetting(newSetting));
   },

@@ -11,26 +11,24 @@
  * SOFTWARE.
  */
 import * as React from 'react';
-import { connect } from 'react-redux';
 import * as browser from 'webextension-polyfill';
 
 import { getMatchedExpressions } from '../../../services/Libs';
-import type { Expression, State } from '../../../typings/Global';
 import ExpressionTable from '../../common_components/ExpressionTable';
+import { useUISelector } from '../../hooks';
 
 interface OwnProps {
   url: string;
   storeId: string;
 }
 
-interface ReduxState {
-  expressions: ReadonlyArray<Expression>;
-}
+const FilteredExpression: React.FunctionComponent<OwnProps> = (props) => {
+  const { storeId, url } = props;
 
-const FilteredExpression: React.FunctionComponent<OwnProps & ReduxState> = (
-  props,
-) => {
-  const { expressions, storeId } = props;
+  const expressions = useUISelector((state) =>
+    getMatchedExpressions(state.lists, storeId, url),
+  );
+
   return (
     <ExpressionTable
       expressionColumnTitle={browser.i18n.getMessage(
@@ -60,8 +58,4 @@ const FilteredExpression: React.FunctionComponent<OwnProps & ReduxState> = (
   );
 };
 
-const mapStateToProps = (state: State, props: OwnProps) => ({
-  expressions: getMatchedExpressions(state.lists, props.storeId, props.url),
-});
-
-export default connect(mapStateToProps)(FilteredExpression);
+export default FilteredExpression;
