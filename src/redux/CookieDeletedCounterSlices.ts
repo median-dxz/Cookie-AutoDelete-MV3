@@ -20,10 +20,10 @@ const actions = {
 
 const cookieDeletedCounterReducer = createReducer(initialState, (builder) => {
   builder
-    .addCase(incrementCookieDeletedCounter, (state, action) => {
+    .addCase(actions.incrementCookieDeletedCounter, (state, action) => {
       return state + (action.payload ?? 1);
     })
-    .addMatcher(isAnyOf(resetAll, handleStartUp), () => 0)
+    .addMatcher(isAnyOf(resetAll, actions.resetCookieDeletedCounter), () => 0)
     .addDefaultCase((state) => state);
 });
 

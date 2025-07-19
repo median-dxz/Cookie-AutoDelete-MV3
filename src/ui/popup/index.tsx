@@ -28,10 +28,10 @@ let store: Store<State>;
 
 // Just for middleware registration
 configureStore({
-  reducer: {},
+  reducer: () => {},
   middleware(getDefaultMiddleware) {
     const middleware = getDefaultMiddleware();
-    store = applyMiddleware(store, ...middleware);
+    store = applyMiddleware(new Store(), ...middleware);
     return middleware;
   },
 });
