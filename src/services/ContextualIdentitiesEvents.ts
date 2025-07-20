@@ -16,8 +16,8 @@ import * as browser from 'webextension-polyfill';
 import { EventListenerAction, SettingID } from '../typings/Enums';
 import { cadLog, eventListenerActions, getSetting } from './Libs';
 import StoreUser from './StoreUser';
-import { removeListUI } from '../redux/UIActions';
 import { addCache } from '../redux/CacheSlice';
+import { removeList } from '../redux/ListsSlice';
 
 export default class ContextualIdentitiesEvents extends StoreUser {
   public static async init(): Promise<void> {
@@ -124,7 +124,7 @@ export default class ContextualIdentitiesEvents extends StoreUser {
       )
     ) {
       StoreUser.store.dispatch(
-        removeListUI(changeInfo.contextualIdentity.cookieStoreId),
+        removeList(changeInfo.contextualIdentity.cookieStoreId),
       );
     }
 

@@ -11,7 +11,7 @@ import { resetAll } from './SharedActions';
 const initialState: number = 0;
 const actions = {
   incrementCookieDeletedCounter: createAction<number | undefined>(
-    ReduxConstants.RESET_COOKIE_DELETED_COUNTER,
+    ReduxConstants.INCREMENT_COOKIE_DELETED_COUNTER,
   ),
   resetCookieDeletedCounter: createAction(
     ReduxConstants.RESET_COOKIE_DELETED_COUNTER,

@@ -118,7 +118,7 @@ const listsSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(actions.removeExpression, (state, { payload }) => {
+      .addCase(actions.removeList, (state, { payload }) => {
         const newListObject = { ...state };
         delete newListObject[payload.toString()];
         return newListObject;
