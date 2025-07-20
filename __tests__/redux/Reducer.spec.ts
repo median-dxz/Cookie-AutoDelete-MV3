@@ -10,18 +10,42 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+
+import { ActivityLog } from '../../src/typings/Cleanup';
 import {
-  activityLog,
-  cache,
-  cookieDeletedCounterSession,
-  cookieDeletedCounterTotal,
+  BrowserName,
+  ListType,
+  SettingID,
+  SiteDataType,
+} from '../../src/typings/Enums';
+import { Expression, StoreIdToExpressionList } from '../../src/typings/Global';
+
+import activityLog, { addActivity, removeActivity, clearActivities } from '../../src/redux/ActivityLogSlice';
+import cache from '../../src/redux/CacheSlice';
+import cookieDeletedCounterReducers, {
+  incrementCookieDeletedCounter,
+  resetCookieDeletedCounter,
+} from '../../src/redux/CookieDeletedCounterSlices';
+import lists, {
   expression,
   expressions,
-  lists,
-  settings,
-} from '../../src/redux/Reducers';
-import { ReduxConstants } from '../../src/typings/ReduxConstants';
-import { initialState } from '../../src/redux/State';
+  addExpression,
+  removeExpression,
+  updateExpression,
+  removeList,
+  clearExpressions,
+} from '../../src/redux/ListsSlice';
+import settings, {
+  initialState as initialSettings,
+  updateSetting,
+  resetSettings,
+} from '../../src/redux/SettingsSlice';
+
+import { resetAll } from '../../src/redux/SharedActions';
+import { handleStartUp } from '../../src/redux/BackgroundActions';
+
+const { cookieDeletedCounterSession, cookieDeletedCounterTotal } =
+  cookieDeletedCounterReducers;
 
 const mockExpression: Expression = {
   expression: '',

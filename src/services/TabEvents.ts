@@ -13,11 +13,13 @@
 
 import shortid from 'shortid';
 import * as browser from 'webextension-polyfill';
+import { SettingID } from '../typings/Enums';
 import AlarmEvents from './AlarmEvents';
 import {
   checkIfProtected,
   showNumberOfCookiesInIcon,
 } from './BrowserActionService';
+import type { CookieChangeInfo } from './CookieEvents';
 import {
   CADCOOKIENAME,
   cadLog,
@@ -31,7 +33,6 @@ import {
   returnOptionalCookieAPIAttributes,
 } from './Libs';
 import StoreUser from './StoreUser';
-import { SettingID } from '../typings/Enums';
 
 export default class TabEvents extends StoreUser {
   public static onTabDiscarded(
@@ -71,7 +72,9 @@ export default class TabEvents extends StoreUser {
   }
   public static onTabUpdate(
     tabId: number,
-    changeInfo: browser.Tabs.OnUpdatedChangeInfoType,
+    changeInfo: browser.Tabs.OnUpdatedChangeInfoType & {
+      cookieChanged?: CookieChangeInfo;
+    },
     tab: browser.Tabs.Tab,
   ): void {
     if (tab.status === 'complete') {

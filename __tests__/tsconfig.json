@@ -1,12 +1,26 @@
 {
-    "extends": "../tsconfig.json",
     "compilerOptions": {
+        "target": "es6",
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "jsx": "react-jsx",
         "noEmit": true,
+        "skipLibCheck": false,
+        "esModuleInterop": true,
+        "resolveJsonModule": true,
+        "types": [
+            "jest",
+            "jest-when",
+            "jsdom"
+        ]
     },
     "include": [
         "**/*.spec.ts",
+        "__mock__",
+        "setup.js",
+        "mockTypings.d.ts"
     ],
     "exclude": [
         "node_modules",
-    ]
+    ],
 }

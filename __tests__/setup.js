@@ -45,6 +45,9 @@ const apis = {
   alarms: {
     fn: ['clear', 'clearAll', 'create', 'get', 'getAll'],
   },
+  action: {
+    fn: ['setTitle', 'getTitle'],
+  },
   browserAction: {
     fn: [
       'getBadgeText',
@@ -226,3 +229,5 @@ function generateSpies(parent) {
   return spyParent;
 }
 global.generateSpies = generateSpies;
+
+jest.mock('webextension-polyfill', () => browser);

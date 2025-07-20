@@ -342,9 +342,7 @@ export default class ContextMenuEvents extends StoreUser {
   }
 
   public static async onContextMenuClicked(
-    // TODO: fix this
-    // info: browser.ContextMenus.Static['OnClickData'],
-    info: any,
+    info: browser.Menus.OnClickData,
     tab: browser.Tabs.Tab,
   ): Promise<void> {
     const debug = getSetting(

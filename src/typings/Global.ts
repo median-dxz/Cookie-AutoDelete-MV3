@@ -58,5 +58,3 @@ export type CADLogItem = Readonly<{
   msg?: string;
   x?: any;
 }>;
-
-export type JestSpyObject = { [s: string]: jest.SpyInstance };

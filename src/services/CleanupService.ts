@@ -29,8 +29,6 @@ import {
 } from '../typings/Enums';
 import * as browser from 'webextension-polyfill';
 
-// If you don't have the above types, you can declare the browser namespace for typescript as follows:
-// declare const browser: typeof import('webextension-polyfill');
 import {
   CADCOOKIENAME,
   cadLog,

@@ -16,12 +16,16 @@ import { extractMainDomain, getHostname } from './Libs';
 import StoreUser from './StoreUser';
 import TabEvents from './TabEvents';
 
+export type CookieChangeInfo = {
+  removed: boolean;
+  cookie: browser.Cookies.Cookie;
+  cause: browser.Cookies.OnChangedCause;
+};
+
 export default class CookieEvents extends StoreUser {
-  public static async onCookieChanged(changeInfo: {
-    removed: boolean;
-    cookie: browser.Cookies.Cookie;
-    cause: browser.Cookies.OnChangedCause;
-  }): Promise<void> {
+  public static async onCookieChanged(
+    changeInfo: CookieChangeInfo,
+  ): Promise<void> {
     // Truncate cookie value (purely for debug)
     changeInfo.cookie.value = '***';
     // Get the current active tab(s)
@@ -38,11 +42,7 @@ export default class CookieEvents extends StoreUser {
         extractMainDomain(changeInfo.cookie.domain)
       ) {
         // Force Tab Update function
-        TabEvents.onTabUpdate(
-          tab.id,
-          { cookieChanged: changeInfo } as any,
-          tab,
-        );
+        TabEvents.onTabUpdate(tab.id, { cookieChanged: changeInfo }, tab);
       }
     });
   }
