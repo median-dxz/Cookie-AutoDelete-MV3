@@ -23,23 +23,21 @@ import { SettingID, ListType } from '../../src/typings/Enums';
 import type * as browser from 'webextension-polyfill';
 import { configureWrapStore, State } from '../../src/redux/Store';
 import { addCache } from '../../src/redux/CacheSlice';
+import { resetSettings, updateSetting } from '../../src/redux/SettingsSlice';
 
 import { initialState } from '../__mock__/initialState';
 
 // Actions
-import { resetSettings, updateSetting } from '../../src/redux/SettingsSlice';
-import { addExpressionUI } from '../../src/redux/UIActions';
+// Use namespace import to ensure generateSpies works correctly
+import * as SettingsSlice from '../../src/redux/SettingsSlice';
+import * as UIActions from '../../src/redux/UIActions';
 
-jest.mock('../../src/redux/SettingsSlice', () => ({
-  ...jest.requireActual('../../src/redux/SettingsSlice'),
-  updateSetting: jest.fn(),
-  resetSettings: jest.fn(),
-}));
+const spySettingsSlice = global.generateSpies(SettingsSlice);
+const spyUIActions = global.generateSpies(UIActions);
 
 const spyActions = {
-  resetSettings,
-  updateSetting,
-  ...global.generateSpies({ addExpressionUI }),
+  ...spyUIActions,
+  ...spySettingsSlice,
 };
 
 const spyCleanupService = global.generateSpies(CleanupService);
