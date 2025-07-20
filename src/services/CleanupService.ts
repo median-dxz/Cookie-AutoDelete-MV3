@@ -11,12 +11,12 @@
  * SOFTWARE.
  */
 
-import {
-  type CookiePropertiesCleanup,
-  type CleanupPropertiesInternal,
-  type CleanReasonObject,
-  type ActivityLog,
-  type CleanupProperties,
+import type {
+  CookiePropertiesCleanup,
+  CleanupPropertiesInternal,
+  CleanReasonObject,
+  ActivityLog,
+  CleanupProperties,
 } from '../typings/Cleanup';
 import {
   SettingID,
@@ -720,8 +720,12 @@ export const filterSiteData = (
   const cleanSiteDataInExpression = parseCleanSiteData(
     obj.expression?.cleanSiteData?.includes(siteData),
   );
+  const isExpiredRestartCanClean =
+    isExpiredRestart &&
+    (obj.expression?.listType === ListType.GREY ||
+      obj.expression === undefined);
   const isRestartCleanup =
-    (isExpiredRestart && obj.expression?.listType === ListType.GREY) ||
+    isExpiredRestartCanClean ||
     (obj.reason === ReasonClean.CADSiteDataCookieRestart &&
       obj.expression?.listType === ListType.GREY) ||
     obj.reason === ReasonClean.StartupCleanupAndGreyList;
