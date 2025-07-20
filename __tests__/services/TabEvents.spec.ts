@@ -92,9 +92,9 @@ describe('TabEvents', () => {
     when(global.browser.runtime.getManifest)
       .calledWith()
       .mockReturnValue({ version: '0.12.34' } as never);
-    when(global.browser.cookies.getAll)
-      .calledWith(expect.any(Object))
-      .mockResolvedValue([] as never);
+    // Use default value rather then asymmetric matchers.
+    // Otherwise, the matcher added later will overwrite it.
+    when(global.browser.cookies.getAll).defaultResolvedValue([]);
     // Required so the actual cleaning functions being awaited won't run.
     when(spyAlarmEvents.createActiveModeAlarm)
       .calledWith()

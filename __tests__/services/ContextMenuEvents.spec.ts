@@ -215,6 +215,12 @@ describe('ContextMenuEvents', () => {
   // This test block will also consume coverage for addNewExpression
   describe('onContextMenuClicked - aka the big switch statement', () => {
     beforeAll(() => {
+      when(global.browser.tabs.query)
+        .calledWith({
+          active: true,
+          windowType: 'normal',
+        })
+        .mockResolvedValue([sampleTab]);
       // Required otherwise NodeJS will complain about unhandledPromiseRejects
       when(spyCleanupService.cleanCookiesOperation)
         .calledWith(expect.any(Object), expect.any(Object))
