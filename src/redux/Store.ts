@@ -12,22 +12,24 @@
  */
 /* istanbul ignore file: Redux stuff.*/
 
-import { configureStore, type ActionCreator } from '@reduxjs/toolkit';
+import {
+  configureStore,
+  type ActionCreator,
+  type PayloadAction,
+  type ThunkAction,
+  type UnknownAction
+} from '@reduxjs/toolkit';
 import logger from 'redux-logger';
 import { alias, createWrapStore } from 'webext-redux';
 
 // slices
-import activityLog from './ActivityLogSlice';
-import cache from './CacheSlice';
-import cookieDeletedCounterReducers from './CookieDeletedCounterSlices';
-import lists from './ListsSlice';
-import settings from './SettingsSlice';
 import type { ActivityLog } from '../typings/Cleanup';
 import type {
-  StoreIdToExpressionList,
-  MapToSettingObject,
   CacheMap,
+  MapToSettingObject,
+  StoreIdToExpressionList,
 } from '../typings/Global';
+import activityLog from './ActivityLogSlice';
 import {
   addExpression,
   clearExpressions,
@@ -36,6 +38,10 @@ import {
   removeList,
   updateExpression,
 } from './BackgroundActions';
+import cache from './CacheSlice';
+import cookieDeletedCounterReducers from './CookieDeletedCounterSlices';
+import lists from './ListsSlice';
+import settings from './SettingsSlice';
 import {
   addExpressionUI,
   clearExpressionsUI,
@@ -47,36 +53,27 @@ import {
 
 const wrapStore = createWrapStore();
 
-type InferActionFromCreator<T> = T extends ActionCreator<infer P> ? P : never;
+// The webext-redux will invoke those action creators when the ui actions are dispatched
+// to the proxy store. And the payload will be the **action object** that ui created.
+// So we need use the wrapper to extract the payload from the action object.
+const createPayloadWrapper =
+  <
+    P,
+    A extends UnknownAction | ThunkAction<void, State, any, UnknownAction>,
+  >(
+    actionCreator: ActionCreator<A, [P]>,
+  ): ActionCreator<A, [PayloadAction<P>]> =>
+  ({ payload }) =>
+    actionCreator(payload);
 
 // Corresponds to Action Type in UIActions
 const aliases = {
-  [addExpressionUI.type]: ({
-    payload,
-  }: InferActionFromCreator<typeof addExpressionUI>) => addExpression(payload),
-
-  [clearExpressionsUI.type]: ({
-    payload,
-  }: InferActionFromCreator<typeof clearExpressionsUI>) =>
-    clearExpressions(payload),
-
-  [removeExpressionUI.type]: ({
-    payload,
-  }: InferActionFromCreator<typeof removeExpressionUI>) =>
-    removeExpression(payload),
-
-  [updateExpressionUI.type]: ({
-    payload,
-  }: InferActionFromCreator<typeof updateExpressionUI>) =>
-    updateExpression(payload),
-
-  [removeListUI.type]: ({
-    payload,
-  }: InferActionFromCreator<typeof removeListUI>) => removeList(payload),
-
-  [cookieCleanupUI.type]: ({
-    payload,
-  }: InferActionFromCreator<typeof cookieCleanupUI>) => cookieCleanup(payload),
+  [addExpressionUI.type]: createPayloadWrapper(addExpression),
+  [clearExpressionsUI.type]: createPayloadWrapper(clearExpressions),
+  [removeExpressionUI.type]: createPayloadWrapper(removeExpression),
+  [updateExpressionUI.type]: createPayloadWrapper(updateExpression),
+  [removeListUI.type]: createPayloadWrapper(removeList),
+  [cookieCleanupUI.type]: createPayloadWrapper(cookieCleanup),
 };
 
 export const configureWrapStore = (state: State) => {
