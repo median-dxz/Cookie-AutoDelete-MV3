@@ -12,42 +12,48 @@ export default tsEslint.config(
       globals: {
         ...globals.browser,
         ...globals.jest,
+        ...globals.webextensions,
         ...globals.node,
-        webextensions: true,
+        ...globals.es2024,
       },
       parserOptions: {
-        ecmaFeatures: {
-          jsx: true,
-        },
-        ecmaVersion: 2020,
+        ecmaVersion: 2024,
         sourceType: 'module',
       },
     },
-  },
-  eslint.configs.recommended,
-  tsEslint.configs.recommended,
-  {
-    files: ['src/**/*.{js,jsx,mjs,cjs,ts,tsx}'],
-    plugins: {
-      react,
+    settings: {
+      react: {
+        version: 'detect',
+      },
     },
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    extends: [
+      eslint.configs.recommended,
+      tsEslint.configs.strict,
+      react.configs.flat.recommended,
+      reactHooks.configs['recommended-latest'],
+      prettier,
+    ],
+
     rules: {
+      // eslint rules
+      'no-console': 'warn',
+
+      // @typescript-eslint rules
+      '@typescript-eslint/no-unused-expressions': [
+        'error',
+        { allowShortCircuit: true },
+      ],
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unused-vars': ['warn', { caughtErrors: 'none' }],
+      '@typescript-eslint/no-explicit-any': 'off', // Maybe set to 'warn' later
+
+      // react rules
       'react/jsx-uses-react': 'off',
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',
     },
   },
-  reactHooks.configs['recommended-latest'],
-  {
-    rules: {
-      '@typescript-eslint/no-unused-expressions': [
-        'error',
-        { allowShortCircuit: true },
-      ],
-      '@typescript-eslint/no-unused-vars': ['warn', { caughtErrors: 'none' }],
-      '@typescript-eslint/no-explicit-any': 'off',
-      'no-console': 'warn',
-    },
-  },
-  prettier,
 );

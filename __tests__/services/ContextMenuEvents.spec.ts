@@ -202,7 +202,7 @@ describe('ContextMenuEvents', () => {
       (global.browser.runtime as any).lastError = 'testError';
       ContextMenuEvents.onCreatedOrUpdated();
       // The if statements both perform cadLog, so we need to check for the error one.
-      expect(spyLib.cadLog.mock.calls[0][0].msg.indexOf('testError')).not.toBe(
+      expect(spyLib.cadLog.mock.calls[0][0].msg?.indexOf('testError')).not.toBe(
         -1,
       );
       expect(spyLib.cadLog.mock.calls[0][0].type).toBe('error');
@@ -233,7 +233,7 @@ describe('ContextMenuEvents', () => {
     it('should show warning through cadLog if menuId given is unknown', () => {
       ContextMenuEvents.onContextMenuClicked(defaultOnClickData, sampleTab);
       expect(
-        spyLib.cadLog.mock.calls[1][0].msg.indexOf('unknown menu id'),
+        spyLib.cadLog.mock.calls[1][0].msg?.indexOf('unknown menu id'),
       ).not.toBe(-1);
       expect(spyLib.cadLog.mock.calls[1][0].type).toBe('warn');
     });

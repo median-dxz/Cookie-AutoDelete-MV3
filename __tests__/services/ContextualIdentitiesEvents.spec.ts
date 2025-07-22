@@ -113,7 +113,7 @@ describe('ContextualIdentitiesEvents', () => {
     it('should do nothing if browser.contextualIdentities do not exist', () => {
       // Override setup of browser.contextualIdentities
       const jestContextualIdentities = global.browser.contextualIdentities;
-      global.browser.contextualIdentities = undefined;
+      (global.browser.contextualIdentities as any) = undefined;
       ContextualIdentitiesEvents.init();
       expect(spyLib.getSetting).not.toHaveBeenCalled();
       // Restore browser.contextualIdentities for future tests

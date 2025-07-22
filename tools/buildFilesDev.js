@@ -12,12 +12,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-const fs = require('fs');
-const path = require('path');
-const archiver = require('archiver');
 
-const BUILDS = 'builds';
-const EXT = 'extension';
+// @ts-check
+
+import fs from 'fs';
+import path from 'path';
+import archiver from 'archiver';
+import * as DIR from './directories.js';
+
+const { BUILDS, EXT } = DIR;
+
 const EXTNAME = 'Cookie-AutoDelete_';
 const MANIFEST = 'manifest.json';
 
@@ -180,8 +184,8 @@ function chromeBuild(cb) {
       i === -1
         ? 'Not Found!'
         : mf.permissions.splice(i, 1).length === 1
-        ? 'Done!'
-        : 'An Easter Egg Error!',
+          ? 'Done!'
+          : 'An Easter Egg Error!',
     );
   }
 
