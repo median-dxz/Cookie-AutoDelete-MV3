@@ -35,7 +35,7 @@ const CheckboxSetting: React.FunctionComponent<OwnProps> = ({
   const { name, value } = settingObject;
   const inlineElement = inline ? { display: 'inline' } : {};
   return (
-    <span style={inlineElement} className={'checkbox'}>
+    <span style={inlineElement} className={'form-check'}>
       <span
         className={'addHover'}
         onClick={() =>

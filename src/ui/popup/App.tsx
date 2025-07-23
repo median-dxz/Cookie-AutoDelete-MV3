@@ -21,7 +21,6 @@ import {
   getSetting,
   isAnIP,
   isChrome,
-  isFirefoxNotAndroid,
   localFileToRegex,
   parseCookieStoreId,
 } from '../../services/Libs';
@@ -158,10 +157,7 @@ class App extends Component<PopupAppComponentProps, InitialState> {
     return (
       <div
         id="cadPopup"
-        className="container-fluid"
-        style={{
-          overflow: 'auto',
-        }}
+        className="container-fluid overflow-auto"
         onClick={(e) => {
           const _t = e.target as HTMLElement;
           const _ccg = document.getElementById('cleanCollapse');
@@ -173,160 +169,145 @@ class App extends Component<PopupAppComponentProps, InitialState> {
         }}
       >
         <div
-          className="row pt-2"
+          className="row pt-2 text-center col"
           style={{
-            alignItems: 'center',
             backgroundColor: 'rgba(0, 0, 0, 0.05)',
-            justifyContent: 'center',
           }}
         >
-          <span id="CADTitle">{browser.i18n.getMessage('extensionName')}</span>
-          &nbsp;
-          <span id="CADVersion" style={{ fontWeight: 'bold' }}>
-            {browser.runtime.getManifest().version}
-          </span>
+          <div className="col">
+            <span id="CADTitle">
+              {browser.i18n.getMessage('extensionName')}
+            </span>{' '}
+            <span id="CADVersion" style={{ fontWeight: 'bold' }}>
+              {browser.runtime.getManifest().version}
+            </span>
+          </div>
         </div>
         <div
-          className="row justify-content-center p-1"
+          className="row pb-2"
           style={{
-            alignItems: 'center',
             backgroundColor: 'rgba(0, 0, 0, 0.05)',
             borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
           }}
         >
-          <IconButton
-            iconName="power-off"
-            className={`btn-${
-              settings[SettingID.ACTIVE_MODE].value ? 'success' : 'danger'
-            } m-1`}
-            onClick={() =>
-              onUpdateSetting({
-                ...settings[SettingID.ACTIVE_MODE],
-                value: !settings[SettingID.ACTIVE_MODE].value,
-              })
-            }
-            title={
-              settings[SettingID.ACTIVE_MODE].value
-                ? browser.i18n.getMessage('disableAutoDeleteText')
-                : browser.i18n.getMessage('enableAutoDeleteText')
-            }
-            text={
-              settings[SettingID.ACTIVE_MODE].value
-                ? browser.i18n.getMessage('autoDeleteEnabledText')
-                : browser.i18n.getMessage('autoDeleteDisabledText')
-            }
-          />
-          <IconButton
-            iconName={
-              settings[SettingID.NOTIFY_AUTO].value ? 'bell' : 'bell-slash'
-            }
-            className={`btn-${
-              settings[SettingID.NOTIFY_AUTO].value ? 'success' : 'danger'
-            } m-1`}
-            onClick={() =>
-              onUpdateSetting({
-                ...settings[SettingID.NOTIFY_AUTO],
-                value: !settings[SettingID.NOTIFY_AUTO].value,
-              })
-            }
-            title={browser.i18n.getMessage('toggleNotificationText')}
-            text={
-              settings[SettingID.NOTIFY_AUTO].value
-                ? browser.i18n.getMessage('notificationEnabledText')
-                : browser.i18n.getMessage('notificationDisabledText')
-            }
-          />
-          <div
-            id="cleanButtonContainer"
-            className="btn-group m-1"
-            role="group"
-            aria-label="Clean Actions Group"
-          >
+          <div className="col d-flex flex-row justify-content-center">
             <IconButton
-              iconName="eraser"
-              className="btn-warning"
-              type="button"
-              onClick={() => {
-                onCookieCleanup({
-                  greyCleanup: false,
-                  ignoreOpenTabs: false,
-                });
-                animateFlash(
-                  document.getElementById('cleanButtonContainer'),
-                  true,
-                );
-              }}
-              title={browser.i18n.getMessage('cookieCleanupText')}
-              text={browser.i18n.getMessage('cleanText')}
-            />
-
-            <button
-              aria-controls="cleanCollapse"
-              aria-expanded="false"
-              className="btn btn-warning dropdown-toggle dropdown-toggle-split"
-              data-disabled="true"
-              data-target="#cleanCollapse"
-              data-toggle="collapse"
-              role="button"
-              style={{
-                borderLeftColor: 'rgb(176, 132, 0)',
-                transform: 'translate3d(-3px, 0px, 0px)',
-              }}
-            >
-              <span className="sr-only">
-                {browser.i18n.getMessage('dropdownAdditionalCleaningOptions')}
-              </span>
-            </button>
-          </div>
-          <IconButton
-            iconName="cog"
-            className="btn-info m-1"
-            onClick={() => {
-              if (isFirefoxNotAndroid(cache)) {
-                browser.tabs.create({
-                  cookieStoreId: tab.cookieStoreId,
-                  index: tab.index + 1,
-                  url: '/settings/settings.html#tabSettings',
-                });
-              } else {
-                browser.tabs.create({
-                  index: tab.index + 1,
-                  url: '/settings/settings.html#tabSettings',
-                });
+              iconName="power-off"
+              className={`btn-${
+                settings[SettingID.ACTIVE_MODE].value ? 'success' : 'danger'
+              } m-1`}
+              onClick={() =>
+                onUpdateSetting({
+                  ...settings[SettingID.ACTIVE_MODE],
+                  value: !settings[SettingID.ACTIVE_MODE].value,
+                })
               }
-              window.close();
-            }}
-            title={browser.i18n.getMessage('preferencesText')}
-            text={browser.i18n.getMessage('preferencesText')}
-          />
+              title={
+                settings[SettingID.ACTIVE_MODE].value
+                  ? browser.i18n.getMessage('disableAutoDeleteText')
+                  : browser.i18n.getMessage('enableAutoDeleteText')
+              }
+              text={
+                settings[SettingID.ACTIVE_MODE].value
+                  ? browser.i18n.getMessage('autoDeleteEnabledText')
+                  : browser.i18n.getMessage('autoDeleteDisabledText')
+              }
+            />
+            <IconButton
+              iconName={
+                settings[SettingID.NOTIFY_AUTO].value ? 'bell' : 'bell-slash'
+              }
+              className={`btn-${
+                settings[SettingID.NOTIFY_AUTO].value ? 'success' : 'danger'
+              } m-1`}
+              onClick={() =>
+                onUpdateSetting({
+                  ...settings[SettingID.NOTIFY_AUTO],
+                  value: !settings[SettingID.NOTIFY_AUTO].value,
+                })
+              }
+              title={browser.i18n.getMessage('toggleNotificationText')}
+              text={
+                settings[SettingID.NOTIFY_AUTO].value
+                  ? browser.i18n.getMessage('notificationEnabledText')
+                  : browser.i18n.getMessage('notificationDisabledText')
+              }
+            />
+            <div
+              id="cleanButtonContainer"
+              className="btn-group m-1"
+              role="group"
+              aria-label="Clean Actions Group"
+            >
+              <IconButton
+                iconName="eraser"
+                className="btn btn-warning"
+                type="button"
+                styleReact={{
+                  borderRightColor: 'rgb(176, 132, 0)',
+                }}
+                onClick={() => {
+                  onCookieCleanup({
+                    greyCleanup: false,
+                    ignoreOpenTabs: false,
+                  });
+                  animateFlash(
+                    document.getElementById('cleanButtonContainer'),
+                    true,
+                  );
+                }}
+                title={browser.i18n.getMessage('cookieCleanupText')}
+                text={browser.i18n.getMessage('cleanText')}
+              />
+
+              <button
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#cleanCollapse"
+                aria-expanded="false"
+                aria-controls="cleanCollapse"
+                className="btn btn-warning dropdown-toggle dropdown-toggle-split"
+                style={{
+                  borderLeftColor: 'rgb(176, 132, 0)',
+                  transform: 'translate3d(-2px, 0px, 0px)',
+                }}
+              >
+                <span className="sr-only">
+                  {browser.i18n.getMessage('dropdownAdditionalCleaningOptions')}
+                </span>
+              </button>
+            </div>
+            <IconButton
+              iconName="cog"
+              className="btn-info m-1"
+              onClick={() => {
+                browser.runtime.openOptionsPage();
+                window.close();
+              }}
+              title={browser.i18n.getMessage('preferencesText')}
+              text={browser.i18n.getMessage('preferencesText')}
+            />
+          </div>
         </div>
         <CleanCollapseGroup hostname={hostname || ''} tab={tab} />
 
-        <div
-          className="row no-gutters"
-          style={{
-            alignItems: 'center',
-            margin: '8px 0',
-          }}
-        >
-          {tab.favIconUrl && !tab.favIconUrl.startsWith('chrome:') && (
-            <img
-              alt={'favIcon'}
-              src={tab.favIconUrl}
-              style={{
-                height: '20px',
-                marginRight: '7px',
-                verticalAlign: 'middle',
-                width: '20px',
-              }}
-            />
-          )}
-          <div className="col">
+        <div className="row mt-2 align-items-center">
+          <div className="col d-flex align-items-center">
+            {tab.favIconUrl && !tab.favIconUrl.startsWith('chrome:') && (
+              <img
+                alt={'favIcon'}
+                src={tab.favIconUrl}
+                style={{
+                  height: '20px',
+                  marginRight: '7px',
+                  width: '20px',
+                }}
+              />
+            )}
             <span
               style={{
-                fontSize: '1.25em',
+                fontSize: '1.1em',
                 marginRight: '8px',
-                verticalAlign: 'middle',
               }}
             >
               {`${hostname}${
@@ -359,28 +340,9 @@ class App extends Component<PopupAppComponentProps, InitialState> {
         </div>
 
         {addableHostnames.map((addableHostname) => (
-          <div
-            key={addableHostname}
-            style={{
-              alignItems: 'center',
-              display: 'flex',
-              margin: '8px 0',
-            }}
-            className="row"
-          >
-            <div
-              style={{
-                flex: 1,
-              }}
-            >
-              {addableHostname}
-            </div>
-            <div
-              className="btn-group"
-              style={{
-                marginLeft: '8px',
-              }}
-            >
+          <div key={addableHostname} className="row align-items-center mt-2">
+            <div className="col">{addableHostname}</div>
+            <div className="btn-group col flex-grow-0" role="group">
               <IconButton
                 className="btn-secondary"
                 onClick={() => {
@@ -412,14 +374,10 @@ class App extends Component<PopupAppComponentProps, InitialState> {
           </div>
         ))}
 
-        <div
-          className="row"
-          style={{
-            margin: '8px 0',
-          }}
-        >
+        <div className="row mt-2 mx-0">
           <FilteredExpression url={hostname} storeId={storeId} />
         </div>
+
         <ActivityTable numberToShow={3} decisionFilter={FilterOptions.CLEAN} />
       </div>
     );

@@ -148,11 +148,7 @@ class ExpressionTable extends Component<ExpressionTableProps, EmptyState> {
         <tbody className="expressionTable">
           {expressions.map((expression) => (
             <tr key={`${expression.expression}-${expression.listType}`}>
-              <td
-                style={{
-                  textAlign: 'center',
-                }}
-              >
+              <td className="text-center align-middle">
                 <IconButton
                   title={browser.i18n.getMessage('removeExpressionText')}
                   className="btn-outline-danger"
@@ -163,12 +159,12 @@ class ExpressionTable extends Component<ExpressionTableProps, EmptyState> {
                 />
               </td>
               {editMode && id === expression.id ? (
-                <td className="editableExpression">
+                <td className="editableExpression align-middle">
                   <input
                     ref={(c) => {
                       this.editInput = c;
                     }}
-                    className="form-control"
+                    className="form-control m-0"
                     value={expressionInput}
                     onFocus={this.moveCaretToEnd}
                     onChange={(e) =>
@@ -185,9 +181,6 @@ class ExpressionTable extends Component<ExpressionTableProps, EmptyState> {
                     }}
                     type="url"
                     autoFocus={true}
-                    style={{
-                      margin: 0,
-                    }}
                     formNoValidate={true}
                   />
                   <div className="invalid-feedback">{invalid}</div>
@@ -219,8 +212,9 @@ class ExpressionTable extends Component<ExpressionTableProps, EmptyState> {
                   />
                 </td>
               ) : (
-                <td>
+                <td className="align-middle">
                   <textarea
+                    name="expressionEditArea"
                     className="form-control form-control-plaintext"
                     readOnly={true}
                     rows={1}
@@ -232,9 +226,8 @@ class ExpressionTable extends Component<ExpressionTableProps, EmptyState> {
                       resize: 'none',
                       whiteSpace: 'nowrap',
                     }}
-                  >
-                    {expression.expression}
-                  </textarea>
+                    defaultValue={expression.expression}
+                  />
 
                   <IconButton
                     title={browser.i18n.getMessage('editExpressionText')}
@@ -251,49 +244,38 @@ class ExpressionTable extends Component<ExpressionTableProps, EmptyState> {
                 </td>
               )}
               <td>
-                <div
-                  style={{
-                    verticalAlign: 'middle',
-                  }}
-                >
-                  <ExpressionOptions expression={expression} />
-                </div>
+                <ExpressionOptions expression={expression} />
               </td>
-              <td>
-                <div
-                  style={{
-                    display: 'block',
-                    verticalAlign: 'middle',
-                  }}
-                >
+              <td className="align-middle">
+                <div className="d-flex flex-column justify-content-center align-items-center">
                   {`${
                     expression.listType === 'WHITE'
                       ? browser.i18n.getMessage('whiteListWordText')
                       : browser.i18n.getMessage('greyListWordText')
                   }`}
+                  <IconButton
+                    title={`${
+                      expression.listType === 'WHITE'
+                        ? browser.i18n.getMessage('toggleToGreyListWordText')
+                        : browser.i18n.getMessage('toggleToWhiteListWordText')
+                    }`}
+                    iconName="exchange-alt"
+                    className="btn-outline-dark showOnRowHover"
+                    styleReact={{
+                      marginTop: '5px',
+                      width: '100%',
+                    }}
+                    onClick={() =>
+                      onUpdateExpression({
+                        ...expression,
+                        listType:
+                          expression.listType === ListType.GREY
+                            ? ListType.WHITE
+                            : ListType.GREY,
+                      })
+                    }
+                  />
                 </div>
-                <IconButton
-                  title={`${
-                    expression.listType === 'WHITE'
-                      ? browser.i18n.getMessage('toggleToGreyListWordText')
-                      : browser.i18n.getMessage('toggleToWhiteListWordText')
-                  }`}
-                  iconName="exchange-alt"
-                  className="btn-outline-dark showOnRowHover"
-                  styleReact={{
-                    marginTop: '5px',
-                    width: '100%',
-                  }}
-                  onClick={() =>
-                    onUpdateExpression({
-                      ...expression,
-                      listType:
-                        expression.listType === ListType.GREY
-                          ? ListType.WHITE
-                          : ListType.GREY,
-                    })
-                  }
-                />
               </td>
             </tr>
           ))}

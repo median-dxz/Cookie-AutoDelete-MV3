@@ -74,7 +74,7 @@ const CleanDataButton: React.FunctionComponent<OwnProps> = (props) => {
       aria-expanded="false"
       className={`btn ${
         btnColor || `btn-${altColor ? 'secondary' : 'primary'}`
-      } btn-block px-2 mt-1`}
+      } px-2 mt-1`}
       data-target="#cleanCollapse"
       data-toggle="collapse"
       onClick={async () => {
