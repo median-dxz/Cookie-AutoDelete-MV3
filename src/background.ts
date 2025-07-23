@@ -10,7 +10,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 
 import { configureWrapStore } from './redux/Store';
 import {
@@ -48,6 +48,7 @@ import { addCache } from './redux/CacheSlice';
 import { resetCookieDeletedCounter } from './redux/CookieDeletedCounterSlices';
 import { addExpression, updateExpression } from './redux/ListsSlice';
 import { updateSetting } from './redux/SettingsSlice';
+import { browserDetect } from './utils/BrowserDetect';
 
 let store: ReturnType<typeof configureWrapStore>;
 

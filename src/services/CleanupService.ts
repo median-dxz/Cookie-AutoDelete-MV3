@@ -27,7 +27,7 @@ import {
   ReasonKeep,
   BrowserName,
 } from '../typings/Enums';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 
 import {
   CADCOOKIENAME,
@@ -51,6 +51,7 @@ import {
   undefinedIsTrue,
 } from './Libs';
 import type { State } from '../redux/Store';
+import { browserDetect } from '../utils/BrowserDetect';
 
 /** Prepare a cookie for deletion */
 export const prepareCookie = (
@@ -517,7 +518,7 @@ export const clearSiteDataForThisDomain = async (
 export const removeSiteData = async (
   state: State,
   siteData: SiteDataType,
-  bName: BrowserName = browserDetect() as BrowserName,
+  bName: BrowserName = browserDetect(),
   domains: string[],
   debug: boolean,
   manual = false,
@@ -666,7 +667,7 @@ export const cleanSiteData = async (
   state: State,
   siteData: SiteDataType,
   cleanReasonObjects: CleanReasonObject[],
-  bName: BrowserName = browserDetect() as BrowserName,
+  bName: BrowserName = browserDetect(),
   debug: boolean,
 ): Promise<string[]> => {
   const domains = cleanReasonObjects
@@ -835,7 +836,7 @@ export const cleanCookiesOperation = async (
   const cookieStoreIds = new Set<string>();
 
   // Manually add default containers.
-  switch (state.cache.browserDetect || (browserDetect() as BrowserName)) {
+  switch (state.cache.browserDetect || browserDetect()) {
     case BrowserName.Firefox:
       cookieStoreIds.add('default');
       cookieStoreIds.add('firefox-default');

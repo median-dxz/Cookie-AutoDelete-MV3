@@ -11,7 +11,7 @@
  * SOFTWARE.
  */
 
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import { extractMainDomain, getHostname } from './Libs';
 import StoreUser from './StoreUser';
 import TabEvents from './TabEvents';

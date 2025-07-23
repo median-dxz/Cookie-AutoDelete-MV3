@@ -12,7 +12,7 @@
  */
 
 import shortid from 'shortid';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import { SettingID } from '../typings/Enums';
 import AlarmEvents from './AlarmEvents';
 import {

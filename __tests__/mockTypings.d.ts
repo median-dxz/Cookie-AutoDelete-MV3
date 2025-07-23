@@ -1,7 +1,4 @@
 /* eslint-disable no-var */
-
-/// <reference path="../src/typings/BrowserDetect.d.ts" />
-
 type Browser = typeof import('webextension-polyfill');
 type JestSpyObject<T extends Record<string, unknown>> = {
   [key in keyof T]: T[key] extends (...args: infer P) => infer R
@@ -52,6 +49,10 @@ type MockedBrowser = {
 declare var browser: Browser & MockedBrowser;
 declare var chrome: Browser & MockedBrowser;
 
+declare var browserDetect: jest.Mock<
+  import('../src/typings/Enums').BrowserName,
+  []
+>;
 declare function generateSpies<T extends Record<string, unknown>>(
   v: T,
 ): JestSpyObject<T>;

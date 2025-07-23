@@ -16,7 +16,7 @@ import {
   type ThunkAction,
   type UnknownAction,
 } from '@reduxjs/toolkit';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import { checkIfProtected } from '../services/BrowserActionService';
 import { cleanCookiesOperation } from '../services/CleanupService';
 import {
@@ -48,7 +48,7 @@ import {
   clearExpressions as clearExpressionsAction,
   removeExpression as removeExpressionAction,
   updateExpression as updateExpressionAction,
-  removeList as removeListAction
+  removeList as removeListAction,
 } from './ListsSlice';
 
 // Those actions can only work in background scripts. To use them in the UI,

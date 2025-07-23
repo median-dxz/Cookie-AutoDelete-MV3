@@ -12,7 +12,7 @@
  */
 import * as React from 'react';
 import { connect } from 'react-redux';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import {
   addExpressionUI,
   clearExpressionsUI,
@@ -34,6 +34,7 @@ import IconButton from '../../common_components/IconButton';
 import { downloadObjectAsJSON } from '../../UILibs';
 import SettingsTooltip from './SettingsTooltip';
 import type { Dispatch, State } from '../../../redux/Store';
+import { browserDetect } from '../../../utils/BrowserDetect';
 
 const styles = {
   buttonStyle: {
@@ -666,7 +667,7 @@ class Expressions extends React.Component<ExpressionProps> {
 const mapStateToProps = (state: State) => {
   const { cache, lists } = state;
   return {
-    bName: cache.browserDetect || (browserDetect() as BrowserName),
+    bName: cache.browserDetect || browserDetect(),
     cache,
     contextualIdentities: getSetting(
       state,

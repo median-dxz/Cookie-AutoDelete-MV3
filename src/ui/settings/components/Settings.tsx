@@ -13,7 +13,7 @@
 import * as React from 'react';
 import { connect } from 'react-redux';
 
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import {
   initialState as initialSettings,
   resetSettings,
@@ -226,7 +226,7 @@ class Settings extends React.Component<SettingProps> {
       <div style={style}>
         <h1>{browser.i18n.getMessage('settingsText')}</h1>
         <br />
-        <div className="row no-gutters justify-content-between justify-content-md-start">
+        <div className="row g-0 justify-content-between justify-content-md-start">
           <div className="col-7 col-md-auto">
             <IconButton
               className="btn-primary"

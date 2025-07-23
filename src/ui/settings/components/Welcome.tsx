@@ -12,7 +12,7 @@
  */
 import * as React from 'react';
 import { connect } from 'react-redux';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 
 import { BrowserName } from '../../../typings/Enums';
 import type { ReleaseNote } from '../../../typings/Global';
@@ -20,6 +20,7 @@ import IconButton from '../../common_components/IconButton';
 import ReleaseNotes from '../ReleaseNotes.json';
 import { resetCookieDeletedCounter } from '../../../redux/CookieDeletedCounterSlices';
 import type { Dispatch, State } from '../../../redux/Store';
+import { browserDetect } from '../../../utils/BrowserDetect';
 
 const displayReleaseNotes = (releases: ReleaseNote[]) => {
   return (
@@ -45,7 +46,7 @@ const displayReleaseNotes = (releases: ReleaseNote[]) => {
 };
 
 // Get the review link for different browsers
-const getReviewLink = (bName: BrowserName = browserDetect() as BrowserName) => {
+const getReviewLink = (bName = browserDetect()) => {
   switch (bName) {
     case BrowserName.Chrome:
       return 'https://chrome.google.com/webstore/detail/cookie-autodelete/fhcgjolkccmbidfldomjliifgaodjagh/reviews';

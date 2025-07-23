@@ -12,7 +12,7 @@
  */
 import * as React from 'react';
 import { connect } from 'react-redux';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import { clearActivities } from '../../../redux/ActivityLogSlice';
 import type { Dispatch } from '../../../redux/Store';
 import { FilterOptions } from '../../../typings/Enums';

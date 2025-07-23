@@ -11,7 +11,7 @@
  * SOFTWARE.
  */
 import * as React from 'react';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import type { State } from '../../../redux/Store';
 import {
   clearCookiesForThisDomain,

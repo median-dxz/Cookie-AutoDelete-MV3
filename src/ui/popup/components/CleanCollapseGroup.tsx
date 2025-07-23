@@ -13,7 +13,7 @@
 
 import * as React from 'react';
 import { useCallback } from 'react';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import { cookieCleanupUI } from '../../../redux/UIActions';
 import {
   clearCookiesForThisDomain,

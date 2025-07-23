@@ -13,7 +13,7 @@
 
 import ipaddr from 'ipaddr.js';
 import shortid from 'shortid';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import type { CookiePropertiesCleanup } from '../typings/Cleanup';
 import type {
   CacheMap,
@@ -29,6 +29,7 @@ import {
   SiteDataType,
 } from '../typings/Enums';
 import type { State } from '../redux/Store';
+import { browserDetect } from '../utils/BrowserDetect';
 
 /* --- CONSTANTS --- */
 export const CADCOOKIENAME = 'CookieAutoDeleteBrowsingDataCleanup';
@@ -696,7 +697,7 @@ export const parseCookieStoreId = (
  */
 export const prepareCleanupDomains = (
   domain: string,
-  bName: BrowserName = browserDetect() as BrowserName,
+  bName = browserDetect(),
 ): string[] => {
   if (domain.trim() === '') return [];
   let d: string = domain.trim();
@@ -863,7 +864,7 @@ export const sleep = (ms: number): Promise<any> => {
 export const throwErrorNotification = (e: Error, duration: number): void => {
   const nid = `CAD-notification-failed-${shortid.generate()}`;
   browser.notifications.create(nid, {
-    iconUrl: browser.runtime.getURL('icons/icon_red_48.png'),
+    iconUrl: browser.runtime.getURL('icons/icon_48_red.png'),
     message: e.message,
     title: browser.i18n.getMessage('errorText'),
     type: 'basic',

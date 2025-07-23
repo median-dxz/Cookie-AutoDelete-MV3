@@ -14,7 +14,7 @@
 import type { State } from '../redux/Store';
 import { ListType, SettingID } from '../typings/Enums';
 import { getHostname, returnMatchedExpressionObject } from './Libs';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 
 // Show the # of cookies in icon
 export const showNumberOfCookiesInIcon = (

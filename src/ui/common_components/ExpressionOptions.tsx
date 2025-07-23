@@ -14,7 +14,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ipaddr from 'ipaddr.js';
 import * as React from 'react';
 import { connect } from 'react-redux';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import {
   isChrome,
   isFirefox,

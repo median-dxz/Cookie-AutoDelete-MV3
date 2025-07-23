@@ -12,7 +12,7 @@
  */
 import * as React from 'react';
 import { useCallback } from 'react';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import type { State } from '../../redux/Store';
 import {
   cadLog,
@@ -257,7 +257,7 @@ const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
 
   if (activityLog.length === 0) {
     return (
-      <div className="alert alert-primary" role="alert">
+      <div className="alert alert-primary mt-2" role="alert">
         <i>
           {browser.i18n.getMessage('noCleanupLogText')}
           <br /> {browser.i18n.getMessage('noPrivateLogging')}
@@ -270,9 +270,6 @@ const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
     <div
       className="accordion"
       id="accordion"
-      style={{
-        marginBottom: '10px',
-      }}
     >
       {filtered.map((log, index) => {
         const summary = createSummary(log);

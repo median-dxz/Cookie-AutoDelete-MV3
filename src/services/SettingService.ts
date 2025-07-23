@@ -19,7 +19,7 @@ import { checkIfProtected, setGlobalIcon } from './BrowserActionService';
 import ContextMenuEvents from './ContextMenuEvents';
 import { SettingID, SiteDataType } from '../typings/Enums';
 import type { MapToSettingObject } from '../typings/Global';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import { updateSetting } from '../redux/SettingsSlice';
 
 export default class SettingService extends StoreUser {

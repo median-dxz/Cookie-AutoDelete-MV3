@@ -19,6 +19,10 @@ import type { State } from '../../redux/Store';
 import fontAwesomeImports from '../font-awesome-imports';
 import App from './App';
 
+import 'bootstrap';
+import './scss/settings.scss';
+import './scss/side-menu.scss';
+
 fontAwesomeImports();
 
 let store: Store<State>;

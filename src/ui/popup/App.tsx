@@ -12,7 +12,7 @@
  */
 import { Component } from 'react';
 import { connect } from 'react-redux';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import {
   CADCOOKIENAME,
   extractMainDomain,

@@ -16,8 +16,9 @@ import { cadLog, isFirefox } from '../../../services/Libs';
 import IconButton from '../../common_components/IconButton';
 import { BrowserName, SettingID } from '../../../typings/Enums';
 import type { CacheMap, MapToSettingObject } from '../../../typings/Global';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import type { State } from '../../../redux/Store';
+import { browserDetect } from '../../../utils/BrowserDetect';
 
 const styles = {
   buttonStyle: {

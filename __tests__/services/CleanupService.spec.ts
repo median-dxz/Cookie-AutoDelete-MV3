@@ -367,9 +367,9 @@ describe('CleanupService', () => {
     });
 
     it('should not clean anything if browserDetect value is missing or is not Firefox or Chrome', async () => {
-      const spyBrowserDetect = jest.spyOn(global, 'browserDetect');
+      global.browserDetect.mockClear();
       await cleanCookiesOperation(sampleState, cleanupProperties);
-      expect(spyBrowserDetect).toHaveBeenCalledTimes(1);
+      expect(global.browserDetect).toHaveBeenCalledTimes(1);
       expect(global.browser.cookies.remove).not.toHaveBeenCalled();
     });
 
@@ -858,7 +858,7 @@ describe('CleanupService', () => {
     });
 
     it('should call browserDetect if one in cache is undefined', async () => {
-      const spyBrowserDetect = jest.spyOn(global, 'browserDetect');
+      global.browserDetect.mockClear();
       await cleanSiteData(
         sampleState,
         SiteDataType.CACHE,
@@ -866,7 +866,7 @@ describe('CleanupService', () => {
         undefined,
         false,
       );
-      expect(spyBrowserDetect).toHaveBeenCalledTimes(1);
+      expect(global.browserDetect).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -2154,7 +2154,7 @@ describe('CleanupService', () => {
     });
 
     it('should call browserDetect if one in cache is undefined', async () => {
-      const spyBrowserDetect = jest.spyOn(global, 'browserDetect');
+      global.browserDetect.mockClear();
       await removeSiteData(
         sampleState,
         SiteDataType.CACHE,
@@ -2162,7 +2162,7 @@ describe('CleanupService', () => {
         ['test'],
         false,
       );
-      expect(spyBrowserDetect).toHaveBeenCalledTimes(1);
+      expect(global.browserDetect).toHaveBeenCalledTimes(1);
     });
   });
 

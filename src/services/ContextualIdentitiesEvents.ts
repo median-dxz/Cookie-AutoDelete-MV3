@@ -11,7 +11,7 @@
  * SOFTWARE.
  */
 
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 
 import { EventListenerAction, SettingID } from '../typings/Enums';
 import { cadLog, eventListenerActions, getSetting } from './Libs';

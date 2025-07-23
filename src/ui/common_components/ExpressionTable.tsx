@@ -12,7 +12,7 @@
  */
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import { validateExpressionDomain } from '../../services/Libs';
 import { ListType } from '../../typings/Enums';
 import type { Expression } from '../../typings/Global';

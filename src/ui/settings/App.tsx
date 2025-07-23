@@ -12,7 +12,7 @@
  */
 import { Component } from 'react';
 import { connect } from 'react-redux';
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import ErrorBoundary from '../common_components/ErrorBoundary';
 import About from './components/About';
 import ActivityLog from './components/ActivityLog';

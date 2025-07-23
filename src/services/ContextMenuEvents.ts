@@ -11,7 +11,7 @@
  * SOFTWARE.
  */
 
-import * as browser from 'webextension-polyfill';
+import browser from 'webextension-polyfill';
 import {
   EventListenerAction,
   ListType,

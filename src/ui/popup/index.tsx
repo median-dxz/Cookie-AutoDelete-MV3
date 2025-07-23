@@ -22,6 +22,9 @@ import App from './App';
 import { configureStore } from '@reduxjs/toolkit';
 import type { State } from '../../redux/Store';
 
+import 'bootstrap';
+import './scss/popup.scss';
+
 fontAwesomeImports();
 
 let store: Store<State>;
