@@ -119,6 +119,9 @@ const apis = {
     ],
     events: ['onConnect', 'onInstalled', 'onMessage', 'onStartup'],
   },
+  scripting: {
+    fn: ['executeScript'],
+  },
   tabs: {
     fn: [
       'connect',

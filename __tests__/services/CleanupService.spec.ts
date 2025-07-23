@@ -69,6 +69,7 @@ const sampleTab: browser.Tabs.Tab = {
   pinned: false,
   url: 'https://example.com',
   windowId: 1,
+  id: 1,
 };
 
 const wildCardGreyListGoogle: Expression = {
@@ -963,35 +964,35 @@ describe('CleanupService', () => {
   });
 
   describe('clearLocalStorageForThisDomain()', () => {
-    it('should clear localstorage from active tab (via tabs.executeScript)', async () => {
-      when(global.browser.tabs.executeScript)
-        .calledWith(undefined, expect.any(Object))
-        .mockResolvedValue([{ local: 2, session: 0 }] as never);
+    it('should clear localstorage from active tab (via scripting.executeScript)', async () => {
+      when(global.browser.scripting.executeScript)
+        .calledWith(expect.any(Object))
+        .mockResolvedValue([{ result: { local: 2, session: 0 } }] as never);
       expect(
         await clearLocalStorageForThisDomain(initialState, sampleTab),
       ).toBe(true);
-      expect(global.browser.tabs.executeScript).toHaveBeenCalledTimes(1);
+      expect(global.browser.scripting.executeScript).toHaveBeenCalledTimes(1);
       expect(global.browser.notifications.create).toHaveBeenCalledTimes(1);
     });
-    it('should show error notification if browser.tabs.executeScript threw an error', async () => {
-      when(global.browser.tabs.executeScript)
-        .calledWith(undefined, expect.any(Object))
+    it('should show error notification if browser.scripting.executeScript threw an error', async () => {
+      when(global.browser.scripting.executeScript)
+        .calledWith(expect.any(Object))
         .mockRejectedValue(new Error('test') as never);
       expect(
         await clearLocalStorageForThisDomain(initialState, sampleTab),
       ).toBe(false);
-      expect(global.browser.tabs.executeScript).toHaveBeenCalledTimes(1);
+      expect(global.browser.scripting.executeScript).toHaveBeenCalledTimes(1);
       expect(spyLib.throwErrorNotification).toHaveBeenCalledTimes(1);
       expect(spyLib.showNotification).toHaveBeenCalledTimes(1);
     });
-    it('should only show the no cleanup done notification if browser.tabs.executeScript threw a non-error type', async () => {
-      when(global.browser.tabs.executeScript)
-        .calledWith(undefined, expect.any(Object))
+    it('should only show the no cleanup done notification if browser.scripting.executeScript threw a non-error type', async () => {
+      when(global.browser.scripting.executeScript)
+        .calledWith(expect.any(Object))
         .mockRejectedValue('error' as never);
       expect(
         await clearLocalStorageForThisDomain(initialState, sampleTab),
       ).toBe(false);
-      expect(global.browser.tabs.executeScript).toHaveBeenCalledTimes(1);
+      expect(global.browser.scripting.executeScript).toHaveBeenCalledTimes(1);
       expect(spyLib.throwErrorNotification).not.toHaveBeenCalled();
       expect(spyLib.showNotification).toHaveBeenCalledTimes(1);
     });

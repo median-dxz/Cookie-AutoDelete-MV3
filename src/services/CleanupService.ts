@@ -412,21 +412,71 @@ export const clearCookiesForThisDomain = async (
   return cookies.length > 0;
 };
 
+async function getCurrentTab(): Promise<browser.Tabs.Tab | undefined> {
+  const queryOptions = { active: true, lastFocusedWindow: true };
+
+  // `tab` will either be a `tabs.Tab` instance or `undefined`.
+  let [tab] = (await browser.tabs.query(queryOptions)) as [
+    browser.Tabs.Tab | undefined,
+  ];
+
+  if (browser.runtime.lastError) {
+    // eslint-disable-next-line no-console
+    console.error(browser.runtime.lastError);
+    tab = undefined;
+  }
+
+  return tab;
+}
+
+interface ClearLocalStorageResult {
+  local: number;
+  session: number;
+}
+
 export const clearLocalStorageForThisDomain = async (
   state: State,
   tab: browser.Tabs.Tab,
 ): Promise<boolean> => {
   // Using this method to ensure cross browser compatibility
+  function cleanLocalStorage() {
+    const cad_r = {
+      local: window.localStorage.length,
+      session: window.sessionStorage.length,
+    };
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+    return cad_r;
+  }
+
   try {
     let local = 0;
     let session = 0;
-    const result = await browser.tabs.executeScript(undefined, {
-      code: `var cad_r = {local: window.localStorage.length, session: window.sessionStorage.length};window.localStorage.clear();window.sessionStorage.clear();cad_r;`,
+
+    if (tab.id === undefined) {
+      const currentTab = await getCurrentTab();
+      if (!currentTab || currentTab.id === undefined) {
+        throw new Error(
+          `ClearLocalStorageForThisDomain: ManualCleanNoTabFound`,
+        );
+      }
+      tab = currentTab;
+    }
+
+    const result = await browser.scripting.executeScript({
+      target: {
+        tabId: tab.id!,
+        allFrames: true,
+      },
+      func: cleanLocalStorage,
     });
-    (result as Array<{ [key: string]: any }>).forEach((frame) => {
-      local += frame.local;
-      session += frame.session;
+
+    result.forEach((injectionResult) => {
+      const result = injectionResult.result as ClearLocalStorageResult;
+      local += result.local;
+      session += result.session;
     });
+
     showNotification(
       {
         duration: getSetting(state, SettingID.NOTIFY_DURATION) as number,
