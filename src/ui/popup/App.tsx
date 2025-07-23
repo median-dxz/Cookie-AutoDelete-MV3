@@ -291,7 +291,7 @@ class App extends Component<PopupAppComponentProps, InitialState> {
         </div>
         <CleanCollapseGroup hostname={hostname || ''} tab={tab} />
 
-        <div className="row mt-2 align-items-center">
+        <div className="row mt-2 mx-auto align-items-center">
           <div className="col d-flex align-items-center">
             {tab.favIconUrl && !tab.favIconUrl.startsWith('chrome:') && (
               <img
@@ -377,8 +377,12 @@ class App extends Component<PopupAppComponentProps, InitialState> {
         <div className="row mt-2 mx-0">
           <FilteredExpression url={hostname} storeId={storeId} />
         </div>
-
-        <ActivityTable numberToShow={3} decisionFilter={FilterOptions.CLEAN} />
+        <div className="row mt-2 mx-0">
+          <ActivityTable
+            numberToShow={3}
+            decisionFilter={FilterOptions.CLEAN}
+          />
+        </div>
       </div>
     );
   }

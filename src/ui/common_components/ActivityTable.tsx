@@ -70,10 +70,7 @@ const createDetailedSummary = (cleanReasonObjects: CleanReasonObject[]) => {
     ([domain, cleanReasonObj]) => {
       return (
         <div
-          style={{
-            marginLeft: '10px',
-          }}
-          className={`alert alert-danger`}
+          className={`alert alert-danger mx-2`}
           key={`${domain}`}
           role="alert"
         >
@@ -257,7 +254,11 @@ const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
 
   if (activityLog.length === 0) {
     return (
-      <div className="alert alert-primary mt-2" role="alert">
+      <div
+        className="alert alert-primary col"
+        style={{ marginBlockEnd: '0.75rem' }}
+        role="alert"
+      >
         <i>
           {browser.i18n.getMessage('noCleanupLogText')}
           <br /> {browser.i18n.getMessage('noPrivateLogging')}
@@ -268,7 +269,8 @@ const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
   const filtered = activityLog.slice(0, numberToShow || 10);
   return (
     <div
-      className="accordion"
+      className="accordion col px-0"
+      style={{ marginBlockEnd: '0.75rem' }}
       id="accordion"
     >
       {filtered.map((log, index) => {
@@ -283,41 +285,33 @@ const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
         );
         const storeIdEntries = Object.entries(log.storeIds);
         return (
-          <div key={index} className="card">
+          <div key={index} className="accordion-item">
             <div
-              style={{ display: 'flex' }}
-              className="card-header"
+              className="accordion-header d-flex align-items-center p-2"
               id={`heading${index}`}
             >
               {(log.recentlyCleaned > 0 && (
                 <IconButton
-                  className={'btn-primary mr-auto'}
+                  className={'btn-primary'}
                   iconName={'undo'}
                   onClick={() => restoreCookies(state, log, onRemoveActivity)}
                   title={browser.i18n.getMessage('restoreText')}
                 />
-              )) || <div className={'mr-auto'} style={{ minWidth: '42px' }} />}
-              <h5
-                className="mb-0"
-                style={{
-                  overflowX: 'hidden',
-                }}
+              )) || <div className={'ms-auto'} style={{ minWidth: '42px' }} />}
+              <button
+                className="btn btn-link text-wrap collapsed"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target={`#collapse${index}`}
+                aria-expanded="false"
+                aria-controls={`collapse${index}`}
               >
-                <button
-                  className="btn btn-link collapsed"
-                  type="button"
-                  data-toggle="collapse"
-                  data-target={`#collapse${index}`}
-                  aria-expanded="false"
-                  aria-controls={`collapse${index}`}
-                >
-                  {`${new Date(log.dateTime).toLocaleString([], {
-                    timeZoneName: 'short',
-                  })} - ${message} ...`}
-                </button>
-              </h5>
+                {`${new Date(log.dateTime).toLocaleString([], {
+                  timeZoneName: 'short',
+                })} - ${message} ...`}
+              </button>
               <IconButton
-                className={'btn-outline-danger ml-auto'}
+                className={'btn-outline-danger'}
                 iconName={'trash'}
                 onClick={() => onRemoveActivity(log)}
                 title={browser.i18n.getMessage('removeActivityLogEntryText')}
@@ -329,49 +323,39 @@ const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
               aria-labelledby={`heading${index}`}
               data-parent="#accordion"
             >
-              <div className="card-body">
-                {browsingDataEntries.map(([siteData, domains]) => {
-                  if (!domains || domains.length === 0) return '';
-                  return (
-                    <div
-                      key={`${siteData}-${log.dateTime}`}
-                      style={{
-                        marginLeft: '10px',
-                      }}
-                      className={`alert alert-info`}
-                      role="alert"
-                    >
-                      {browser.i18n.getMessage(
-                        'activityLogSiteDataDomainsText',
-                        [
-                          browser.i18n.getMessage(
-                            `${siteDataToBrowser(
-                              siteData as SiteDataType,
-                            )}Text`,
-                          ),
-                          domains.join(', '),
-                        ],
-                      )}
-                    </div>
-                  );
-                })}
-                {storeIdEntries.map(([storeId, cleanReasonObjects]) => {
-                  return (
-                    <div key={`${storeId}-${log.dateTime}`}>
-                      {(storeIdEntries.length > 1 ||
-                        getSetting(state, SettingID.CONTEXTUAL_IDENTITIES)) && (
-                        <h6>
-                          {cache[storeId] !== undefined
-                            ? `${cache[storeId]} `
-                            : ''}
-                          ({storeId})
-                        </h6>
-                      )}
-                      {createDetailedSummary(cleanReasonObjects)}
-                    </div>
-                  );
-                })}
-              </div>
+              {browsingDataEntries.map(([siteData, domains]) => {
+                if (!domains || domains.length === 0) return '';
+                return (
+                  <div
+                    key={`${siteData}-${log.dateTime}`}
+                    className={`alert alert-info mx-2`}
+                    role="alert"
+                  >
+                    {browser.i18n.getMessage('activityLogSiteDataDomainsText', [
+                      browser.i18n.getMessage(
+                        `${siteDataToBrowser(siteData as SiteDataType)}Text`,
+                      ),
+                      domains.join(', '),
+                    ])}
+                  </div>
+                );
+              })}
+              {storeIdEntries.map(([storeId, cleanReasonObjects]) => {
+                return (
+                  <div key={`${storeId}-${log.dateTime}`}>
+                    {(storeIdEntries.length > 1 ||
+                      getSetting(state, SettingID.CONTEXTUAL_IDENTITIES)) && (
+                      <h6>
+                        {cache[storeId] !== undefined
+                          ? `${cache[storeId]} `
+                          : ''}
+                        ({storeId})
+                      </h6>
+                    )}
+                    {createDetailedSummary(cleanReasonObjects)}
+                  </div>
+                );
+              })}
             </div>
           </div>
         );

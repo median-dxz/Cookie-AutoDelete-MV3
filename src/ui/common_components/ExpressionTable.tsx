@@ -136,7 +136,7 @@ class ExpressionTable extends Component<ExpressionTableProps, EmptyState> {
     }
 
     return (
-      <table className="table table-striped table-hover table-bordered">
+      <table className="table table-striped table-hover table-bordered col">
         <thead>
           <tr>
             <th scope="col" />

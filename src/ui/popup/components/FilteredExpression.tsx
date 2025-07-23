@@ -39,7 +39,7 @@ const FilteredExpression: React.FunctionComponent<OwnProps> = (props) => {
       expressions={expressions}
       storeId={storeId}
       emptyElement={
-        <div className="alert alert-primary my-0" role="alert">
+        <div className="alert alert-primary col mb-0" role="alert">
           <i>{browser.i18n.getMessage('noRulesText')}</i>
         </div>
       }
