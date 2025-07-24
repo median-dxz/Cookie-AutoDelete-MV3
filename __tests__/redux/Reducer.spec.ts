@@ -233,7 +233,7 @@ describe('Reducer', () => {
 
     it('should return youtube.com on default', () => {
       const newState = lists(
-        { ...state },
+        state,
         addExpression({
           ...mockExpression,
           expression: 'youtube.com',
@@ -248,7 +248,7 @@ describe('Reducer', () => {
 
     it('should return github.com on firefox-container-1', () => {
       const newState = lists(
-        { ...state },
+        state,
         addExpression({
           expression: 'github.com',
           listType: ListType.GREY,
@@ -275,7 +275,7 @@ describe('Reducer', () => {
 
     it('should return github.com and GREY for updated expression on default', () => {
       const newState = lists(
-        { ...state },
+        state,
         updateExpression({
           ...mockExpression,
           expression: 'github.com',
@@ -292,7 +292,7 @@ describe('Reducer', () => {
 
     it('should return google.com and WHITE for updated expression on firefox-container-1', () => {
       const newState = lists(
-        { ...state },
+        state,
         updateExpression({
           expression: 'google.com',
           id: '123',

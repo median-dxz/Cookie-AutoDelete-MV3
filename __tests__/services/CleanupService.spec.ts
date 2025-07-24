@@ -27,6 +27,7 @@ import {
 } from '../../src/typings/Enums';
 import type { Expression } from '../../src/typings/Global';
 
+import { produce } from 'immer';
 import { advanceTo, clear } from 'jest-date-mock';
 import { when } from 'jest-when';
 import {
@@ -50,7 +51,6 @@ import * as Lib from '../../src/services/Libs';
 // This dynamically generates the spies for all functions in Libs
 const spyLib = global.generateSpies(Lib);
 
-import { Store } from 'webext-redux';
 import { configureWrapStore, State } from '../../src/redux/Store';
 import * as CleanupService from '../../src/services/CleanupService';
 import { CADCOOKIENAME } from '../../src/services/Libs';
@@ -1463,13 +1463,11 @@ describe('CleanupService', () => {
         hostname: 'twitter.com',
         mainDomain: 'twitter.com',
       };
-      const sampleRegExpState = {
-        ...sampleState,
-        lists: {
-          ...sampleState.lists,
-          default: [...sampleState.lists.default, whiteListAllExceptTwitter],
-        },
-      };
+
+      const sampleRegExpState = produce(sampleState, (draft) => {
+        const defaultLists = draft.lists['default'];
+        defaultLists.push(whiteListAllExceptTwitter);
+      });
 
       const result = isSafeToClean(sampleRegExpState, cookieProperty, {
         ...cleanupProperties,

@@ -62,7 +62,7 @@ interface StateProps {
 interface DispatchProps {
   onClearExpressions: (lists: StoreIdToExpressionList) => void;
   onNewExpression: (expression: Expression) => void;
-  onRemoveList: (list: keyof StoreIdToExpressionList) => void;
+  onRemoveList: (list: string) => void;
 }
 
 type ExpressionProps = OwnProps & StateProps & DispatchProps;
@@ -276,7 +276,7 @@ class Expressions extends React.Component<ExpressionProps> {
   }
 
   public removeListConfirmation(
-    list: keyof StoreIdToExpressionList,
+    list: string,
     expressions: ReadonlyArray<Expression>,
   ) {
     const { debug, onRemoveList } = this.props;
@@ -685,7 +685,7 @@ const mapDispatchToProps = (dispatch: Dispatch) => ({
   onNewExpression(payload: Expression) {
     dispatch(addExpressionUI(payload));
   },
-  onRemoveList(payload: keyof StoreIdToExpressionList) {
+  onRemoveList(payload: string) {
     dispatch(removeListUI(payload));
   },
 });

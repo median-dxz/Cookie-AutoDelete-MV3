@@ -871,7 +871,7 @@ export const cleanCookiesOperation = async (
     greyCleanup: false,
     ignoreOpenTabs: false,
   },
-): Promise<Record<string, any>> => {
+) => {
   const debug = getSetting(state, SettingID.DEBUG_MODE) as boolean;
   const deletedSiteDataArrays: ActivityLog['browsingDataCleanup'] = {};
   const setOfDeletedDomainCookies = new Set<string>();
@@ -1079,11 +1079,10 @@ export const cleanCookiesOperation = async (
       : [];
   }
 
-  cachedResults.storeIds = Object.fromEntries(
-    Object.entries(cachedResults.storeIds).filter(
-      ([key]) => !(key in storesIdsToScrub),
-    ),
-  );
+  for (const id of storesIdsToScrub) {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete cachedResults.storeIds[id];
+  }
 
   return {
     cachedResults,

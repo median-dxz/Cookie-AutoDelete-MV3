@@ -10,7 +10,6 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import ipaddr from 'ipaddr.js';
 import * as React from 'react';
 import { connect } from 'react-redux';
@@ -41,12 +40,6 @@ class InitialState {
 }
 
 type ExpressionOptionsProps = OwnProps & DispatchProps & StateProps;
-
-const styles = {
-  checkbox: {
-    marginRight: '5px',
-  } as React.CSSProperties,
-};
 
 const trimDotAndStar = (str: string) => {
   const trimmed = str.replace(/^[.*]+|[.*]+$/g, '');

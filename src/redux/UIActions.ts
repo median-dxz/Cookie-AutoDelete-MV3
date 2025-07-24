@@ -37,7 +37,7 @@ export const updateExpressionUI = createAction<Expression>(
   ReduxConstants.UPDATE_EXPRESSION + UIActionSuffix,
 );
 
-export const removeListUI = createAction<keyof StoreIdToExpressionList>(
+export const removeListUI = createAction<string>(
   ReduxConstants.REMOVE_LIST + UIActionSuffix,
 );
 

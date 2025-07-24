@@ -31,9 +31,7 @@ const actions = {
     ReduxConstants.REMOVE_EXPRESSION,
   ),
   updateExpression: createAction<Expression>(ReduxConstants.UPDATE_EXPRESSION),
-  removeList: createAction<keyof StoreIdToExpressionList>(
-    ReduxConstants.REMOVE_LIST,
-  ),
+  removeList: createAction<string>(ReduxConstants.REMOVE_LIST),
   clearExpressions: createAction<StoreIdToExpressionList>(
     ReduxConstants.CLEAR_EXPRESSIONS,
   ),
@@ -119,9 +117,8 @@ const listsSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(actions.removeList, (state, { payload }) => {
-        const newListObject = { ...state };
-        delete newListObject[payload.toString()];
-        return newListObject;
+        // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+        delete state[payload.toString()];
       })
       .addMatcher(
         isAnyOf(
@@ -134,12 +131,11 @@ const listsSlice = createSlice({
             payload: { storeId },
           } = action;
 
-          const newListObject = { ...state };
-          newListObject[storeId] = expressions(state[storeId], action);
-          if (newListObject[storeId].length === 0) {
-            delete newListObject[storeId];
+          state[storeId] = expressions(state[storeId], action);
+          if (state[storeId]?.length === 0) {
+            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+            delete state[storeId];
           }
-          return newListObject;
         },
       )
       .addMatcher(

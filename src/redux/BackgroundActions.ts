@@ -28,7 +28,7 @@ import {
   showNotification,
   sleep,
 } from '../services/Libs';
-import type { ActivityLog, CleanupProperties } from '../typings/Cleanup';
+import type { CleanupProperties } from '../typings/Cleanup';
 import { ListType, SettingID, SiteDataType } from '../typings/Enums';
 import type {
   Expression,
@@ -160,7 +160,7 @@ export const updateExpression: ActionCreator<
 
 export const removeList: ActionCreator<
   ThunkAction<void, State, unknown, UnknownAction>,
-  [keyof StoreIdToExpressionList]
+  [string]
 > = (payload) => (dispatch, getState) => {
   dispatch(removeListAction(payload));
   checkIfProtected(getState());
@@ -261,7 +261,7 @@ export const cookieCleanup: ActionCreator<
     if (!cleanupDoneObject) return;
     const { setOfDeletedDomainCookies, cachedResults } = cleanupDoneObject;
     const { browsingDataCleanup, recentlyCleaned, siteDataCleaned } =
-      cachedResults as ActivityLog;
+      cachedResults;
 
     // Increment the count
     if (
@@ -281,7 +281,7 @@ export const cookieCleanup: ActionCreator<
     // Show notifications after cleanup
     if (getSetting(getState(), SettingID.NOTIFY_AUTO)) {
       const domainsAll = new Set<string>();
-      Object.values((cachedResults as ActivityLog).storeIds).forEach((v) => {
+      Object.values(cachedResults.storeIds).forEach((v) => {
         v.forEach((d) => domainsAll.add(d.cookie.hostname));
       });
       const bDomains = new Set<string>();
