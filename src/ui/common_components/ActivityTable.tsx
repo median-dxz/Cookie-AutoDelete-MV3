@@ -11,121 +11,16 @@
  * SOFTWARE.
  */
 import * as React from 'react';
-import { useCallback } from 'react';
 import browser from 'webextension-polyfill';
 import {
-  cadLog,
-  getSetting,
-  isFirefox,
-  returnOptionalCookieAPIAttributes,
-  siteDataToBrowser,
-  throwErrorNotification,
-} from '../../services/Libs';
-import type { ActivityLog, CleanReasonObject } from '../../typings/Cleanup';
-import {
-  FilterOptions,
-  ListType,
-  ReasonClean,
-  ReasonKeep,
-  SettingID,
-  SiteDataType,
+  FilterOptions
 } from '../../typings/Enums';
-import { useUIDispatch, useUISelector } from '../hooks';
-import IconButton from './IconButton';
+import { useUISelector } from '../hooks';
 
-import { createAsyncThunk } from '@reduxjs/toolkit';
-import { shallowEqual } from 'react-redux';
 import {
-  removeActivity,
-  selectActivityLog,
+  selectActivityLog
 } from '../../redux/ActivityLogSlice';
-import { selectCache } from '../../redux/CacheSlice';
-import { selectSettings, selectSettingValues } from '../../redux/SettingsSlice';
-import type { State } from '../../redux/Store';
-
-const createSummary = (cleanupObj: ActivityLog) => {
-  const domainSet = new Set<string>();
-  Object.values(cleanupObj.storeIds).forEach((value) => {
-    value.forEach((deletedLog) => domainSet.add(deletedLog.cookie.hostname));
-  });
-  if (cleanupObj.browsingDataCleanup) {
-    Object.values(cleanupObj.browsingDataCleanup).forEach((sd) => {
-      sd && sd.forEach((domain) => domainSet.add(domain));
-    });
-  }
-
-  return {
-    total: domainSet.size.toString(),
-    domains: Array.from(domainSet).slice(0, 5).join(', '),
-  };
-};
-
-const createDetailedSummary = (cleanReasonObjects: CleanReasonObject[]) => {
-  const mapDomainToCookieNames: { [domain: string]: CleanReasonObject[] } = {};
-  cleanReasonObjects.forEach((obj) => {
-    if (mapDomainToCookieNames[obj.cookie.hostname]) {
-      mapDomainToCookieNames[obj.cookie.hostname].push(obj);
-    } else {
-      mapDomainToCookieNames[obj.cookie.hostname] = [obj];
-    }
-  });
-  return Object.entries(mapDomainToCookieNames).map(
-    ([domain, cleanReasonObj]) => {
-      return (
-        <div
-          className={`alert alert-danger mx-2`}
-          key={`${domain}`}
-          role="alert"
-        >
-          {`${domain} (${cleanReasonObj
-            .map((obj) => obj.cookie.name)
-            .join(', ')}): ${returnReasonMessages(cleanReasonObj[0])}`}
-        </div>
-      );
-    },
-  );
-};
-
-const returnReasonMessages = (cleanReasonObject: CleanReasonObject) => {
-  const { reason } = cleanReasonObject;
-  const { hostname, mainDomain } = cleanReasonObject.cookie;
-  const matchedExpression = cleanReasonObject.expression;
-  switch (reason) {
-    case ReasonClean.CADSiteDataCookie:
-    case ReasonClean.ExpiredCookie: {
-      return browser.i18n.getMessage(reason, [hostname]);
-    }
-    case ReasonKeep.OpenTabs: {
-      return browser.i18n.getMessage(reason, [mainDomain]);
-    }
-
-    case ReasonClean.NoMatchedExpression:
-    case ReasonClean.StartupNoMatchedExpression: {
-      return browser.i18n.getMessage(reason, [hostname]);
-    }
-
-    case ReasonClean.StartupCleanupAndGreyList: {
-      return browser.i18n.getMessage(reason, [
-        matchedExpression ? matchedExpression.expression : '',
-      ]);
-    }
-
-    case ReasonClean.MatchedExpressionButNoCookieName:
-    case ReasonKeep.MatchedExpression: {
-      return browser.i18n.getMessage(reason, [
-        matchedExpression ? matchedExpression.expression : '',
-        matchedExpression && matchedExpression.listType === ListType.GREY
-          ? browser.i18n.getMessage('greyListWordText')
-          : browser.i18n.getMessage('whiteListWordText'),
-      ]);
-    }
-
-    default:
-      return '';
-  }
-};
-
-type ActivityAction = (log: ActivityLog) => void;
+import ActivityItem from './ActivityItem';
 
 interface OwnProps {
   decisionFilter: FilterOptions;
@@ -133,116 +28,6 @@ interface OwnProps {
 }
 
 type ActivityTableProps = OwnProps;
-
-const restoreCookies = createAsyncThunk(
-  'component/activityTable/restoreCookies',
-  async (
-    payload: { log: ActivityLog; onRemoveActivity: ActivityAction },
-    { getState },
-  ) => {
-    const { log, onRemoveActivity } = payload;
-    const state = getState() as State;
-    const debug = getSetting(state, SettingID.DEBUG_MODE) as boolean;
-    const cleanReasonObjsArrays = Object.values(log.storeIds);
-    const promiseArr = [];
-
-    cadLog(
-      {
-        msg: `ActivityTable.restoreCookies:  Restoring Cookies for triggered ActivityLog entry`,
-        x: log,
-      },
-      debug,
-    );
-
-    for (const cleanReasonObjs of cleanReasonObjsArrays) {
-      for (const obj of cleanReasonObjs) {
-        // Cannot set cookies from file:// protocols
-        if (obj.cookie.preparedCookieDomain.startsWith('file:')) {
-          cadLog(
-            {
-              msg: 'Cookie appears to come from a local file.  Cannot be restored normally.',
-              type: 'warn',
-              x: obj.cookie,
-            },
-            debug,
-          );
-          continue;
-        }
-        // Silently ignore cookies with no domain
-        if (obj.cookie.preparedCookieDomain.trim() === '') {
-          cadLog(
-            {
-              msg: 'Cookie appears to have no domain.  Cannot restore.',
-              type: 'warn',
-              x: obj.cookie,
-            },
-            debug,
-          );
-          continue;
-        }
-        const {
-          domain,
-          expirationDate,
-          firstPartyDomain,
-          hostOnly,
-          httpOnly,
-          name,
-          sameSite,
-          secure,
-          storeId,
-          value,
-        } = obj.cookie;
-        // Prefix fun: https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#Cookie_prefixes
-        // Since the cookies returned through web-extension API should already be validated,
-        // we are not doing any validations for __Secure- cookies.
-        // For cookies starting with __Secure-, secure attribute should already be true,
-        // and url should already start with https://
-        // Only modify cookie names starting with __Host- as it shouldn't have domain.
-        const cookieProperties = {
-          ...returnOptionalCookieAPIAttributes(isFirefox(state.cache), {
-            firstPartyDomain,
-          }),
-          domain: name.startsWith('__Host-') || hostOnly ? undefined : domain,
-          expirationDate,
-          httpOnly,
-          name,
-          sameSite,
-          secure,
-          storeId,
-          url: obj.cookie.preparedCookieDomain,
-          value,
-        };
-        promiseArr.push(browser.cookies.set(cookieProperties));
-      }
-    }
-
-    try {
-      // If any error/rejection was thrown, the rest of the promises are not processed.
-      // FUTURE:  Use https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled to process all regardless of rejection. ** Perhaps too early to implement at this time 2020-May-03 **
-      await Promise.all(promiseArr).catch((e) => {
-        throwErrorNotification(
-          e,
-          getSetting(state, SettingID.NOTIFY_DURATION) as number,
-        );
-        cadLog(
-          {
-            msg: 'An Error occurred while trying to restore cookie(s).  The rest of the cookies to restore are not processed.',
-            type: 'error',
-            x: e,
-          },
-          debug,
-        );
-        throw e;
-      });
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error(e);
-      return;
-    }
-    // Restore didn't fail
-    onRemoveActivity(log);
-  },
-);
 
 const AlertNoLogsAvailable = () => (
   <div
@@ -259,26 +44,8 @@ const AlertNoLogsAvailable = () => (
 
 const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
   const { numberToShow } = props;
-  const dispatch = useUIDispatch();
 
-  const cache = useUISelector(selectCache);
   const activityLog = useUISelector(selectActivityLog);
-
-  const settings = useUISelector(
-    (state) =>
-      selectSettingValues(
-        selectSettings(state),
-        SettingID.CONTEXTUAL_IDENTITIES,
-      ),
-    shallowEqual,
-  );
-
-  const onRemoveActivity = useCallback(
-    (log: ActivityLog) => {
-      dispatch(removeActivity(log));
-    },
-    [dispatch],
-  );
 
   if (activityLog.length === 0) {
     return <AlertNoLogsAvailable />;
@@ -292,95 +59,9 @@ const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
       style={{ marginBlockEnd: '0.75rem' }}
       id="accordion"
     >
-      {filtered.map((log, index) => {
-        const summary = createSummary(log);
-        const message = browser.i18n.getMessage('notificationContent', [
-          log.recentlyCleaned.toString(),
-          summary.total,
-          summary.domains !== '' ? summary.domains : '(Private)',
-        ]);
-        const browsingDataEntries = Object.entries(
-          log.browsingDataCleanup || {},
-        );
-        const storeIdEntries = Object.entries(log.storeIds);
-        return (
-          <div key={index} className="accordion-item">
-            <div
-              className="accordion-header d-flex align-items-center p-2"
-              id={`heading${index}`}
-            >
-              {(log.recentlyCleaned > 0 && (
-                <IconButton
-                  className={'btn-primary'}
-                  iconName={'undo'}
-                  onClick={() =>
-                    dispatch(restoreCookies({ log, onRemoveActivity }))
-                  }
-                  title={browser.i18n.getMessage('restoreText')}
-                />
-              )) || <div className={'ms-auto'} style={{ minWidth: '42px' }} />}
-              <button
-                className="btn btn-link text-wrap collapsed"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target={`#collapse${index}`}
-                aria-expanded="false"
-                aria-controls={`collapse${index}`}
-              >
-                {`${new Date(log.dateTime).toLocaleString([], {
-                  timeZoneName: 'short',
-                })} - ${message} ...`}
-              </button>
-              <IconButton
-                className={'btn-outline-danger'}
-                iconName={'trash'}
-                onClick={() => onRemoveActivity(log)}
-                title={browser.i18n.getMessage('removeActivityLogEntryText')}
-              />
-            </div>
-            <div
-              id={`collapse${index}`}
-              className="collapse"
-              aria-labelledby={`heading${index}`}
-              data-parent="#accordion"
-            >
-              {browsingDataEntries.map(([siteData, domains]) => {
-                if (!domains || domains.length === 0) return '';
-                return (
-                  <div
-                    key={`${siteData}-${log.dateTime}`}
-                    className={`alert alert-info mx-2`}
-                    role="alert"
-                  >
-                    {browser.i18n.getMessage('activityLogSiteDataDomainsText', [
-                      browser.i18n.getMessage(
-                        `${siteDataToBrowser(siteData as SiteDataType)}Text`,
-                      ),
-                      domains.join(', '),
-                    ])}
-                  </div>
-                );
-              })}
-              {storeIdEntries.map(([storeId, cleanReasonObjects]) => {
-                return (
-                  <div key={`${storeId}-${log.dateTime}`}>
-                    {(storeIdEntries.length > 1 ||
-                      settings.contextualIdentities) && (
-                      <h6>
-                        {cache[storeId] !== undefined
-                          ? `${cache[storeId]} `
-                          : ''}
-                        ({storeId})
-                      </h6>
-                    )}
-                    {createDetailedSummary(cleanReasonObjects)}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+      {filtered.map((log, index) => (
+        <ActivityItem key={index} log={log} index={index} />
+      ))}
     </div>
   );
 };
