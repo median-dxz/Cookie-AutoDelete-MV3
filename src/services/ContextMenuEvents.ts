@@ -803,10 +803,7 @@ export default class ContextMenuEvents extends StoreUser {
           },
           debug,
         );
-        await browser.tabs.create({
-          index: tab.index + 1,
-          url: '/settings/settings.html#tabSettings',
-        });
+        await browser.runtime.openOptionsPage();
         break;
       default:
         cadLog(

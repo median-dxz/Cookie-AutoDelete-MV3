@@ -340,10 +340,11 @@ class Expressions extends React.Component<ExpressionProps> {
     });
   }
 
-  public getDerivedStateFromProps(nextProps: ExpressionProps) {
+  static getDerivedStateFromProps(nextProps: ExpressionProps) {
     if (!nextProps.contextualIdentities) {
-      this.changeStoreIdTab('default');
+      return { default: 'default' };
     }
+    return null;
   }
 
   // Change the id of the storeId for the container tabs
@@ -416,14 +417,16 @@ class Expressions extends React.Component<ExpressionProps> {
           />
         </div>
         <div className="row">
-          <a
-            target="_blank"
-            rel="help noreferrer noopener"
-            href="https://github.com/Cookie-AutoDelete/Cookie-AutoDelete/wiki/Documentation#enter-expression"
-          >
-            {browser.i18n.getMessage('questionExpression')}
+          <div className="col">
+            <a
+              target="_blank"
+              rel="help noreferrer noopener"
+              href="https://github.com/Cookie-AutoDelete/Cookie-AutoDelete/wiki/Documentation#enter-expression"
+            >
+              {browser.i18n.getMessage('questionExpression')}
+            </a>
             <SettingsTooltip hrefURL="#enter-expression" />
-          </a>
+          </div>
         </div>
         <div
           className="row"
@@ -459,7 +462,7 @@ class Expressions extends React.Component<ExpressionProps> {
                 iconName="upload"
                 type="file"
                 accept="application/json"
-                onChange={(e) => this.importExpressions(e.target.files[0])}
+                onChange={(e) => this.importExpressions(e.target.files![0])}
                 text={browser.i18n.getMessage('importURLSText')}
                 title={browser.i18n.getMessage('importURLSText')}
                 styleReact={styles.buttonStyle}

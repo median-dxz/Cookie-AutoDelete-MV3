@@ -136,7 +136,10 @@ class ExpressionTable extends Component<ExpressionTableProps, EmptyState> {
     }
 
     return (
-      <table className="table table-striped table-hover table-bordered col">
+      <table
+        className="table table-striped table-hover table-bordered col"
+        style={{ height: 'fit-content' }}
+      >
         <thead>
           <tr>
             <th scope="col" />

@@ -31,9 +31,9 @@ interface IconButtonProps {
   download?: string;
   role?: string;
   target?: string;
-  onClick?: (e: any) => void;
-  onChange?: (e: any) => void;
-  onContextMenu?: (e: any) => void;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 export default function IconButton({

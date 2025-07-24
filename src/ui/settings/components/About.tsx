@@ -94,26 +94,26 @@ class About extends React.Component<AboutProps> {
         </h5>
         <a href="https://github.com/Cookie-AutoDelete/Cookie-AutoDelete/issues">
           {browser.i18n.getMessage('reportIssuesText')}
-        </a>{' '}
+        </a>
         <br />
         <br />
         <a href="https://github.com/Cookie-AutoDelete/Cookie-AutoDelete/wiki/Documentation">
-          <span>{`${browser.i18n.getMessage('documentationText')}`}</span>
+          <span>{browser.i18n.getMessage('documentationText')}</span>
         </a>
         <br />
         <a href="https://github.com/Cookie-AutoDelete/Cookie-AutoDelete/wiki/FAQ:-Common-Questions-and-Issues">
-          <span>{`${browser.i18n.getMessage('faqText')}`}</span>
+          <span>{browser.i18n.getMessage('faqText')}</span>
         </a>
         <br />
-        <br />{' '}
+        <br />
         <a
           href="https://chrome.google.com/webstore/detail/cookie-autodelete/fhcgjolkccmbidfldomjliifgaodjagh"
           target="_blank"
           rel="noreferrer"
         >
-          <span>{`${browser.i18n.getMessage('versionText', [
-            'Google Chrome',
-          ])}`}</span>{' '}
+          <span>
+            {browser.i18n.getMessage('versionText', ['Google Chrome'])}
+          </span>
         </a>
         <br />
         <a
@@ -121,23 +121,25 @@ class About extends React.Component<AboutProps> {
           target="_blank"
           rel="noreferrer"
         >
-          <span>{`${browser.i18n.getMessage('versionText', [
-            'Microsoft Edge Chromium',
-          ])}`}</span>{' '}
-        </a>{' '}
+          <span>
+            {browser.i18n.getMessage('versionText', [
+              'Microsoft Edge Chromium',
+            ])}
+          </span>
+        </a>
         <br />
         <a
           href="https://addons.mozilla.org/firefox/addon/cookie-autodelete/"
           target="_blank"
           rel="noreferrer"
         >
-          <span>{`${browser.i18n.getMessage('versionText', [
-            'Mozilla Firefox',
-          ])}`}</span>{' '}
-        </a>{' '}
+          <span>
+            {browser.i18n.getMessage('versionText', ['Mozilla Firefox'])}
+          </span>
+        </a>
         <br />
         <br />
-        <span>{`${browser.i18n.getMessage('contributorsText')}`}:</span>
+        <span>{browser.i18n.getMessage('contributorsText')}:</span>
         <ul>
           <li>Kenny Do (Creator)</li>
           <li>
@@ -164,8 +166,7 @@ class About extends React.Component<AboutProps> {
           cols={40}
           readOnly={true}
           style={{ resize: 'none' }}
-        >
-          {`- OS: ${platformInfo.arch} ${
+          value={`- OS: ${platformInfo.arch} ${
             platformOS[platformInfo.os]
           } (Please add OS version on paste)\n- Browser Info: ${bName} ${
             isFirefox(cache)
@@ -174,10 +175,10 @@ class About extends React.Component<AboutProps> {
           }\n- CookieAutoDelete Version: ${
             browser.runtime.getManifest().version
           }`}
-        </textarea>
+        />
         <br />
         <IconButton
-          className="btn-primary"
+          className="btn btn-primary"
           role="button"
           onClick={() => {
             const textDebug = document.getElementById('debugInfo');
@@ -221,7 +222,7 @@ class About extends React.Component<AboutProps> {
           title={browser.i18n.getMessage('copyToClipboardText')}
           text={browser.i18n.getMessage('copyToClipboardText')}
           styleReact={styles.buttonStyle}
-        />{' '}
+        />
         <span id="copy-debugInfo">&nbsp;</span>
         <br />
         <br />
@@ -232,10 +233,11 @@ class About extends React.Component<AboutProps> {
           cols={40}
           readOnly={true}
           style={{ resize: 'none' }}
-        >{`${settingSlim.join('\n')}`}</textarea>
+          value={`${settingSlim.join('\n')}`}
+        />
         <br />
         <IconButton
-          className="btn-primary"
+          className="btn btn-primary"
           role="button"
           onClick={() => {
             const textDebug = document.getElementById('debugSettings');
@@ -279,7 +281,7 @@ class About extends React.Component<AboutProps> {
           title={browser.i18n.getMessage('copyToClipboardText')}
           text={browser.i18n.getMessage('copyToClipboardText')}
           styleReact={styles.buttonStyle}
-        />{' '}
+        />
         <span id="copy-debugSettings">&nbsp;</span>
         <br />
         <br />

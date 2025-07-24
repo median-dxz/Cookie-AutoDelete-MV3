@@ -229,7 +229,7 @@ class Settings extends React.Component<SettingProps> {
         <div className="row g-0 justify-content-between justify-content-md-start">
           <div className="col-7 col-md-auto">
             <IconButton
-              className="btn-primary"
+              className="btn btn-primary"
               iconName="download"
               role="button"
               onClick={() => this.exportCoreSettings()}
@@ -241,11 +241,11 @@ class Settings extends React.Component<SettingProps> {
           <div className="col-7 col-md-auto">
             <IconButton
               tag="input"
-              className="btn-info"
+              className="btn btn-info"
               iconName="upload"
               type="file"
               accept="application/json, .json"
-              onChange={(e) => this.importCoreSettings(e.target.files[0])}
+              onChange={(e) => this.importCoreSettings(e.target.files![0])}
               title={browser.i18n.getMessage('importCoreSettingsText')}
               text={browser.i18n.getMessage('importCoreSettingsText')}
               styleReact={styles.buttonStyle}
@@ -253,7 +253,7 @@ class Settings extends React.Component<SettingProps> {
           </div>
           <div className="col-7 col-md-auto">
             <IconButton
-              className="btn-danger"
+              className="btn btn-danger"
               role="button"
               onClick={() => {
                 onResetButtonClick();
