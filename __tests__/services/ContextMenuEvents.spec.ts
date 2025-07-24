@@ -219,16 +219,13 @@ describe('ContextMenuEvents', () => {
           windowType: 'normal',
         })
         .mockResolvedValue([sampleTab]);
+
+      when(global.browser.cookies.getAll).mockResolvedValue([]);
+
       // Required otherwise NodeJS will complain about unhandledPromiseRejects
       when(spyCleanupService.cleanCookiesOperation)
         .calledWith(expect.any(Object), expect.any(Object))
         .mockResolvedValue(undefined as never);
-      when(spyCleanupService.clearCookiesForThisDomain)
-        .calledWith(expect.any(Object), expect.any(Object))
-        .mockResolvedValue(true as never);
-      when(spyCleanupService.clearLocalStorageForThisDomain)
-        .calledWith(expect.any(Object), expect.any(Object))
-        .mockResolvedValue(true as never);
     });
     it('should show warning through cadLog if menuId given is unknown', () => {
       ContextMenuEvents.onContextMenuClicked(defaultOnClickData, sampleTab);
@@ -279,9 +276,10 @@ describe('ContextMenuEvents', () => {
         sampleTab,
       );
       expect(spyCleanupService.clearSiteDataForThisDomain).toHaveBeenCalledWith(
-        expect.any(Object),
-        'All',
-        expect.any(String),
+        expect.objectContaining({
+          siteData: 'All',
+          hostname: expect.any(String),
+        }),
       );
     });
     it('Clear Site Data For This Domain was clicked, but hostname was blank', () => {
@@ -305,9 +303,10 @@ describe('ContextMenuEvents', () => {
         sampleTab,
       );
       expect(spyCleanupService.clearSiteDataForThisDomain).toHaveBeenCalledWith(
-        expect.any(Object),
-        'Cache',
-        expect.any(String),
+        expect.objectContaining({
+          siteData: 'Cache',
+          hostname: expect.any(String),
+        }),
       );
     });
     it('Trigger Clear Cookies For This Domain', () => {
@@ -329,9 +328,10 @@ describe('ContextMenuEvents', () => {
         sampleTab,
       );
       expect(spyCleanupService.clearSiteDataForThisDomain).toHaveBeenCalledWith(
-        expect.any(Object),
-        'IndexedDB',
-        expect.any(String),
+        expect.objectContaining({
+          siteData: 'IndexedDB',
+          hostname: expect.any(String),
+        }),
       );
     });
     it('Trigger Clear LocalStorage For This Domain', () => {
@@ -355,9 +355,10 @@ describe('ContextMenuEvents', () => {
         sampleTab,
       );
       expect(spyCleanupService.clearSiteDataForThisDomain).toHaveBeenCalledWith(
-        expect.any(Object),
-        'PluginData',
-        expect.any(String),
+        expect.objectContaining({
+          siteData: 'PluginData',
+          hostname: expect.any(String),
+        }),
       );
     });
     it('Trigger Clear Service Workers For This Domain', () => {
@@ -369,9 +370,10 @@ describe('ContextMenuEvents', () => {
         sampleTab,
       );
       expect(spyCleanupService.clearSiteDataForThisDomain).toHaveBeenCalledWith(
-        expect.any(Object),
-        'ServiceWorkers',
-        expect.any(String),
+        expect.objectContaining({
+          siteData: 'ServiceWorkers',
+          hostname: expect.any(String),
+        }),
       );
     });
     it('Unknown Site Data Type was pass in.  Extreme case.', () => {

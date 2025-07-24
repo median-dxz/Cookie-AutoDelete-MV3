@@ -10,24 +10,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
+import type * as browser from 'webextension-polyfill';
 import type {
-  CookiePropertiesCleanup,
   CleanReasonObject,
   CleanupProperties,
+  CookiePropertiesCleanup,
 } from '../../src/typings/Cleanup';
 import {
-  ListType,
-  SiteDataType,
   BrowserName,
-  SettingID,
+  ListType,
   OpenTabStatus,
   ReasonClean,
   ReasonKeep,
+  SettingID,
+  SiteDataType,
 } from '../../src/typings/Enums';
 import type { Expression } from '../../src/typings/Global';
-import type * as browser from 'webextension-polyfill';
 
-import { initialState } from '../__mock__/initialState';
 import { advanceTo, clear } from 'jest-date-mock';
 import { when } from 'jest-when';
 import {
@@ -44,15 +43,17 @@ import {
   removeSiteData,
   returnContainersOfOpenTabDomains,
 } from '../../src/services/CleanupService';
+import { initialState } from '../__mock__/initialState';
 
 import * as Lib from '../../src/services/Libs';
 
 // This dynamically generates the spies for all functions in Libs
 const spyLib = global.generateSpies(Lib);
 
+import { Store } from 'webext-redux';
+import { configureWrapStore, State } from '../../src/redux/Store';
 import * as CleanupService from '../../src/services/CleanupService';
 import { CADCOOKIENAME } from '../../src/services/Libs';
-import { State } from '../../src/redux/Store';
 
 const spyCleanupService = global.generateSpies(CleanupService);
 
@@ -907,9 +908,11 @@ describe('CleanupService', () => {
         .calledWith(expect.anything())
         .mockResolvedValue({} as never);
 
-      expect(await clearCookiesForThisDomain(initialState, googleTab)).toBe(
-        true,
-      );
+      const store = configureWrapStore(initialState);
+
+      expect(
+        await store.dispatch(clearCookiesForThisDomain(googleTab)).unwrap(),
+      ).toBe(true);
       expect(global.browser.cookies.remove).toHaveBeenCalledTimes(2);
       expect(global.browser.notifications.create).toHaveBeenCalledTimes(1);
       expect(global.browser.i18n.getMessage.mock.calls[1][0]).toBe(
@@ -929,9 +932,11 @@ describe('CleanupService', () => {
         .calledWith(expect.any(Object))
         .mockResolvedValue([] as never);
 
-      expect(await clearCookiesForThisDomain(initialState, googleTab)).toBe(
-        false,
-      );
+      const store = configureWrapStore(initialState);
+
+      expect(
+        await store.dispatch(clearCookiesForThisDomain(googleTab)).unwrap(),
+      ).toBe(false);
       expect(global.browser.cookies.remove).toHaveBeenCalledTimes(0);
       expect(global.browser.notifications.create).toHaveBeenCalledTimes(1);
       expect(global.browser.i18n.getMessage.mock.calls[1][0]).toBe(
@@ -947,9 +952,11 @@ describe('CleanupService', () => {
         .calledWith(expect.any(Object))
         .mockResolvedValue(null as never);
 
-      expect(await clearCookiesForThisDomain(initialState, googleTab)).toBe(
-        false,
-      );
+      const store = configureWrapStore(initialState);
+
+      expect(
+        await store.dispatch(clearCookiesForThisDomain(googleTab)).unwrap(),
+      ).toBe(false);
       expect(global.browser.cookies.remove).toHaveBeenCalledTimes(1);
       expect(global.browser.notifications.create).toHaveBeenCalledTimes(1);
       expect(global.browser.i18n.getMessage.mock.calls[1][0]).toBe(
@@ -968,8 +975,13 @@ describe('CleanupService', () => {
       when(global.browser.scripting.executeScript)
         .calledWith(expect.any(Object))
         .mockResolvedValue([{ result: { local: 2, session: 0 } }] as never);
+
+      const store = configureWrapStore(initialState);
+
       expect(
-        await clearLocalStorageForThisDomain(initialState, sampleTab),
+        await store
+          .dispatch(clearLocalStorageForThisDomain(sampleTab))
+          .unwrap(),
       ).toBe(true);
       expect(global.browser.scripting.executeScript).toHaveBeenCalledTimes(1);
       expect(global.browser.notifications.create).toHaveBeenCalledTimes(1);
@@ -978,8 +990,13 @@ describe('CleanupService', () => {
       when(global.browser.scripting.executeScript)
         .calledWith(expect.any(Object))
         .mockRejectedValue(new Error('test') as never);
+
+      const store = configureWrapStore(initialState);
+
       expect(
-        await clearLocalStorageForThisDomain(initialState, sampleTab),
+        await store
+          .dispatch(clearLocalStorageForThisDomain(sampleTab))
+          .unwrap(),
       ).toBe(false);
       expect(global.browser.scripting.executeScript).toHaveBeenCalledTimes(1);
       expect(spyLib.throwErrorNotification).toHaveBeenCalledTimes(1);
@@ -989,8 +1006,13 @@ describe('CleanupService', () => {
       when(global.browser.scripting.executeScript)
         .calledWith(expect.any(Object))
         .mockRejectedValue('error' as never);
+
+      const store = configureWrapStore(initialState);
+
       expect(
-        await clearLocalStorageForThisDomain(initialState, sampleTab),
+        await store
+          .dispatch(clearLocalStorageForThisDomain(sampleTab))
+          .unwrap(),
       ).toBe(false);
       expect(global.browser.scripting.executeScript).toHaveBeenCalledTimes(1);
       expect(spyLib.throwErrorNotification).not.toHaveBeenCalled();
@@ -1000,17 +1022,29 @@ describe('CleanupService', () => {
 
   describe('clearSiteDataForThisDomain()', () => {
     it('should return false if hostname is empty', async () => {
-      expect(await clearSiteDataForThisDomain(initialState, 'All', '')).toBe(
-        false,
-      );
+      const store = configureWrapStore(initialState);
+      expect(
+        await store
+          .dispatch(
+            clearSiteDataForThisDomain({
+              siteData: SiteDataType.CACHE,
+              hostname: '',
+            }),
+          )
+          .unwrap(),
+      ).toBe(false);
     });
     it('should return false if hostname only has whitespaces', async () => {
+      const store = configureWrapStore(initialState);
       expect(
-        await clearSiteDataForThisDomain(
-          initialState,
-          SiteDataType.CACHE,
-          '  ',
-        ),
+        await store
+          .dispatch(
+            clearSiteDataForThisDomain({
+              siteData: SiteDataType.CACHE,
+              hostname: '  ',
+            }),
+          )
+          .unwrap(),
       ).toBe(false);
     });
   });

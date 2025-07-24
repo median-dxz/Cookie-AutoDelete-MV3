@@ -52,6 +52,7 @@ import {
 } from './Libs';
 import type { State } from '../redux/Store';
 import { browserDetect } from '../utils/BrowserDetect';
+import { createAsyncThunk } from '@reduxjs/toolkit';
 
 /** Prepare a cookie for deletion */
 export const prepareCookie = (
@@ -345,72 +346,73 @@ export const cleanCookies = async (
 };
 
 // Cleanup of all cookies for domain.
-export const clearCookiesForThisDomain = async (
-  state: State,
-  tab: browser.Tabs.Tab,
-): Promise<boolean> => {
-  const hostname = getHostname(tab.url);
-  const getCookies = await browser.cookies.getAll(
-    returnOptionalCookieAPIAttributes(state, {
-      domain: hostname,
-      storeId: tab.cookieStoreId,
-    }),
-  );
-  // Filter out our own CAD cookie that cleans up other Browsing Data
-  const cookies = getCookies.filter((c) => c.name !== CADCOOKIENAME);
+export const clearCookiesForThisDomain = createAsyncThunk(
+  'service/cleanup/clearCookiesForThisDomain',
+  async (tab: browser.Tabs.Tab, { getState }) => {
+    const state = getState() as State;
+    const hostname = getHostname(tab.url);
+    const getCookies = await browser.cookies.getAll(
+      returnOptionalCookieAPIAttributes(state, {
+        domain: hostname,
+        storeId: tab.cookieStoreId,
+      }),
+    );
+    // Filter out our own CAD cookie that cleans up other Browsing Data
+    const cookies = getCookies.filter((c) => c.name !== CADCOOKIENAME);
 
-  if (cookies.length > 0) {
-    let cookieDeletedCount = 0;
-    for (const cookie of cookies) {
-      const r = await browser.cookies.remove(
-        returnOptionalCookieAPIAttributes(state, {
-          firstPartyDomain: cookie.firstPartyDomain,
-          name: cookie.name,
-          storeId: cookie.storeId,
-          url: prepareCookieDomain(cookie),
-        }) as {
-          // This explicit type is required as cookies.remove requires these two
-          // parameters, but url is not defined in cookies.Cookie as it is made
-          // up of cookie.domain + cookie.path, and neither required parameters
-          // can take 'undefined'.  returnOptionalCookieAPIAttributes has the
-          // parameters set to Partial<CookiePropertiesCleanup>, which appends
-          // '| undefined' to all parameters.
-          name: string;
-          url: string;
+    if (cookies.length > 0) {
+      let cookieDeletedCount = 0;
+      for (const cookie of cookies) {
+        const r = await browser.cookies.remove(
+          returnOptionalCookieAPIAttributes(state, {
+            firstPartyDomain: cookie.firstPartyDomain,
+            name: cookie.name,
+            storeId: cookie.storeId,
+            url: prepareCookieDomain(cookie),
+          }) as {
+            // This explicit type is required as cookies.remove requires these two
+            // parameters, but url is not defined in cookies.Cookie as it is made
+            // up of cookie.domain + cookie.path, and neither required parameters
+            // can take 'undefined'.  returnOptionalCookieAPIAttributes has the
+            // parameters set to Partial<CookiePropertiesCleanup>, which appends
+            // '| undefined' to all parameters.
+            name: string;
+            url: string;
+          },
+        );
+        if (r) cookieDeletedCount += 1;
+      }
+      showNotification(
+        {
+          duration: getSetting(state, SettingID.NOTIFY_DURATION) as number,
+          msg: `${browser.i18n.getMessage('manualCleanSuccess', [
+            browser.i18n.getMessage('cookiesText'),
+            hostname,
+          ])}\n${browser.i18n.getMessage('manualCleanRemoved', [
+            cookieDeletedCount.toString(),
+            cookies.length.toString(),
+          ])}`,
         },
+        getSetting(state, SettingID.NOTIFY_MANUAL) as boolean,
       );
-      if (r) cookieDeletedCount += 1;
+
+      return cookieDeletedCount > 0;
     }
+
     showNotification(
       {
         duration: getSetting(state, SettingID.NOTIFY_DURATION) as number,
-        msg: `${browser.i18n.getMessage('manualCleanSuccess', [
+        msg: `${browser.i18n.getMessage('manualCleanNothing', [
           browser.i18n.getMessage('cookiesText'),
           hostname,
-        ])}\n${browser.i18n.getMessage('manualCleanRemoved', [
-          cookieDeletedCount.toString(),
-          cookies.length.toString(),
         ])}`,
       },
       getSetting(state, SettingID.NOTIFY_MANUAL) as boolean,
     );
 
-    return cookieDeletedCount > 0;
-  }
-
-  showNotification(
-    {
-      duration: getSetting(state, SettingID.NOTIFY_DURATION) as number,
-      msg: `${browser.i18n.getMessage('manualCleanNothing', [
-        browser.i18n.getMessage('cookiesText'),
-        hostname,
-      ])}`,
-    },
-    getSetting(state, SettingID.NOTIFY_MANUAL) as boolean,
-  );
-
-  return cookies.length > 0;
-};
+    return cookies.length > 0;
+  },
+);
 
 async function getCurrentTab(): Promise<browser.Tabs.Tab | undefined> {
   const queryOptions = { active: true, lastFocusedWindow: true };
@@ -434,136 +436,144 @@ interface ClearLocalStorageResult {
   session: number;
 }
 
-export const clearLocalStorageForThisDomain = async (
-  state: State,
-  tab: browser.Tabs.Tab,
-): Promise<boolean> => {
-  // Using this method to ensure cross browser compatibility
-  function cleanLocalStorage() {
-    const cad_r = {
-      local: window.localStorage.length,
-      session: window.sessionStorage.length,
-    };
-    window.localStorage.clear();
-    window.sessionStorage.clear();
-    return cad_r;
-  }
+export const clearLocalStorageForThisDomain = createAsyncThunk(
+  'service/cleanup/clearLocalStorageForThisDomain',
+  async (tab: browser.Tabs.Tab, { getState }) => {
+    const state = getState() as State;
 
-  try {
-    let local = 0;
-    let session = 0;
+    // Using this method to ensure cross browser compatibility
+    function cleanLocalStorage() {
+      const cad_r = {
+        local: window.localStorage.length,
+        session: window.sessionStorage.length,
+      };
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+      return cad_r;
+    }
 
-    if (tab.id === undefined) {
-      const currentTab = await getCurrentTab();
-      if (!currentTab || currentTab.id === undefined) {
-        throw new Error(
-          `ClearLocalStorageForThisDomain: ManualCleanNoTabFound`,
+    try {
+      let local = 0;
+      let session = 0;
+
+      if (tab.id === undefined) {
+        const currentTab = await getCurrentTab();
+        if (!currentTab || currentTab.id === undefined) {
+          throw new Error(
+            `ClearLocalStorageForThisDomain: ManualCleanNoTabFound`,
+          );
+        }
+        tab = currentTab;
+      }
+
+      const result = await browser.scripting.executeScript({
+        target: {
+          tabId: tab.id!,
+          allFrames: true,
+        },
+        func: cleanLocalStorage,
+      });
+
+      result.forEach((injectionResult) => {
+        const result = injectionResult.result as ClearLocalStorageResult;
+        local += result.local;
+        session += result.session;
+      });
+
+      showNotification(
+        {
+          duration: getSetting(state, SettingID.NOTIFY_DURATION) as number,
+          msg: `${browser.i18n.getMessage('manualCleanSuccess', [
+            browser.i18n.getMessage('localStorageText'),
+            getHostname(tab.url),
+          ])}\n${browser.i18n.getMessage('removeStorageCount', [
+            local.toString(),
+            browser.i18n.getMessage('localStorageText'),
+          ])}\n${browser.i18n.getMessage('removeStorageCount', [
+            session.toString(),
+            browser.i18n.getMessage('sessionStorageText'),
+          ])}`,
+        },
+        getSetting(state, SettingID.NOTIFY_MANUAL) as boolean,
+      );
+      return true;
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        throwErrorNotification(
+          e,
+          getSetting(state, SettingID.NOTIFY_DURATION) as number,
         );
       }
-      tab = currentTab;
-    }
-
-    const result = await browser.scripting.executeScript({
-      target: {
-        tabId: tab.id!,
-        allFrames: true,
-      },
-      func: cleanLocalStorage,
-    });
-
-    result.forEach((injectionResult) => {
-      const result = injectionResult.result as ClearLocalStorageResult;
-      local += result.local;
-      session += result.session;
-    });
-
-    showNotification(
-      {
+      await sleep(750);
+      showNotification({
         duration: getSetting(state, SettingID.NOTIFY_DURATION) as number,
-        msg: `${browser.i18n.getMessage('manualCleanSuccess', [
+        msg: `${browser.i18n.getMessage('manualCleanNothing', [
           browser.i18n.getMessage('localStorageText'),
           getHostname(tab.url),
-        ])}\n${browser.i18n.getMessage('removeStorageCount', [
-          local.toString(),
-          browser.i18n.getMessage('localStorageText'),
-        ])}\n${browser.i18n.getMessage('removeStorageCount', [
-          session.toString(),
-          browser.i18n.getMessage('sessionStorageText'),
         ])}`,
-      },
-      getSetting(state, SettingID.NOTIFY_MANUAL) as boolean,
-    );
-    return true;
-  } catch (e: unknown) {
-    if (e instanceof Error) {
-      throwErrorNotification(
-        e,
-        getSetting(state, SettingID.NOTIFY_DURATION) as number,
-      );
+      });
+      return false;
     }
-    await sleep(750);
-    showNotification({
-      duration: getSetting(state, SettingID.NOTIFY_DURATION) as number,
-      msg: `${browser.i18n.getMessage('manualCleanNothing', [
-        browser.i18n.getMessage('localStorageText'),
-        getHostname(tab.url),
-      ])}`,
-    });
-    return false;
-  }
-};
+  },
+);
 
-export const clearSiteDataForThisDomain = async (
-  state: State,
-  siteData: SiteDataType | 'All',
-  hostname: string,
-): Promise<boolean> => {
-  if (hostname.trim() === '') return false;
-  const debug = getSetting(state, SettingID.DEBUG_MODE) as boolean;
-  cadLog(
-    {
-      msg: `CleanupService.clearSiteDataForThisDomain: Received ${siteData} clean request for ${hostname}.`,
-    },
-    debug,
-  );
-  const domains = prepareCleanupDomains(hostname, state.cache.browserDetect);
-  if (siteData === 'All') {
-    const siteDataAll: string[] = [];
-    for (const sd of SITEDATATYPES) {
+export const clearSiteDataForThisDomain = createAsyncThunk(
+  'service/cleanup/clearSiteDataForThisDomain',
+  async (
+    payload: { siteData: SiteDataType | 'All'; hostname: string },
+    { getState },
+  ) => {
+    const { siteData, hostname } = payload;
+    const state = getState() as State;
+    if (hostname.trim() === '') return false;
+    const debug = getSetting(state, SettingID.DEBUG_MODE) as boolean;
+    cadLog(
+      {
+        msg: `CleanupService.clearSiteDataForThisDomain: Received ${siteData} clean request for ${hostname}.`,
+      },
+      debug,
+    );
+    const domains = prepareCleanupDomains(hostname, state.cache.browserDetect);
+    if (siteData === 'All') {
+      const siteDataAll: string[] = [];
+      for (const sd of SITEDATATYPES) {
+        await removeSiteData(
+          state,
+          sd,
+          state.cache.browserDetect,
+          domains,
+          debug,
+          false,
+        );
+        siteDataAll.push(
+          browser.i18n.getMessage(`${siteDataToBrowser(sd)}Text`),
+        );
+      }
+      // To consolidate the notification shown, we do it out here.
+      showNotification(
+        {
+          duration: getSetting(state, SettingID.NOTIFY_DURATION) as number,
+          msg: browser.i18n.getMessage('activityLogSiteDataDomainsText', [
+            siteDataAll.join(', '),
+            domains.join(', '),
+          ]),
+          title: browser.i18n.getMessage('notificationTitleSiteData'),
+        },
+        getSetting(state, SettingID.NOTIFY_MANUAL) as boolean,
+      );
+    } else {
       await removeSiteData(
         state,
-        sd,
+        siteData,
         state.cache.browserDetect,
         domains,
         debug,
-        false,
+        true,
       );
-      siteDataAll.push(browser.i18n.getMessage(`${siteDataToBrowser(sd)}Text`));
     }
-    // To consolidate the notification shown, we do it out here.
-    showNotification(
-      {
-        duration: getSetting(state, SettingID.NOTIFY_DURATION) as number,
-        msg: browser.i18n.getMessage('activityLogSiteDataDomainsText', [
-          siteDataAll.join(', '),
-          domains.join(', '),
-        ]),
-        title: browser.i18n.getMessage('notificationTitleSiteData'),
-      },
-      getSetting(state, SettingID.NOTIFY_MANUAL) as boolean,
-    );
-  } else {
-    await removeSiteData(
-      state,
-      siteData,
-      state.cache.browserDetect,
-      domains,
-      debug,
-      true,
-    );
-  }
-  return true;
-};
+    return true;
+  },
+);
 
 export const removeSiteData = async (
   state: State,
@@ -1069,9 +1079,11 @@ export const cleanCookiesOperation = async (
       : [];
   }
 
-  for (const id of storesIdsToScrub) {
-    delete cachedResults.storeIds[id];
-  }
+  cachedResults.storeIds = Object.fromEntries(
+    Object.entries(cachedResults.storeIds).filter(
+      ([key]) => !(key in storesIdsToScrub),
+    ),
+  );
 
   return {
     cachedResults,

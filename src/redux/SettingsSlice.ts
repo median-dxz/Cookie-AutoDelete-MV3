@@ -18,8 +18,8 @@ import {
 } from '@reduxjs/toolkit';
 import { SettingID } from '../typings/Enums';
 import type { MapToSettingObject, Setting } from '../typings/Global';
-import { resetAll } from './SharedActions';
 import { ReduxConstants } from './ReduxConstants';
+import { resetAll } from './SharedActions';
 
 const initialState: MapToSettingObject = {
   [SettingID.ACTIVE_MODE]: {
@@ -178,5 +178,22 @@ export const { updateSetting, resetSettings } = {
 };
 
 export { initialState };
+
+export const selectSettings = settingsSlice.selectSlice;
+
+export const selectSettingValues = <TSettingIDs extends Array<SettingID>>(
+  state: MapToSettingObject,
+  ...settingIDs: TSettingIDs
+) => {
+  const selectedSettings = {} as {
+    [K in TSettingIDs[number]]: Setting['value'];
+  };
+  settingIDs.forEach((id) => {
+    if (state[id]) {
+      selectedSettings[id as TSettingIDs[number]] = state[id].value;
+    }
+  });
+  return selectedSettings;
+};
 
 export default settingsSlice.reducer;

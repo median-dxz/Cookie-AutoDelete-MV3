@@ -403,7 +403,7 @@ export default class ContextMenuEvents extends StoreUser {
         debug,
       );
       if (siteData === 'Cookies') {
-        await clearCookiesForThisDomain(StoreUser.store.getState(), tab);
+        await StoreUser.store.dispatch(clearCookiesForThisDomain(tab)).unwrap();
         return;
       }
       switch (siteData) {
@@ -412,14 +412,17 @@ export default class ContextMenuEvents extends StoreUser {
         case SiteDataType.INDEXEDDB:
         case SiteDataType.PLUGINDATA:
         case SiteDataType.SERVICEWORKERS:
-          await clearSiteDataForThisDomain(
-            StoreUser.store.getState(),
-            siteData,
-            hostname,
+          await StoreUser.store.dispatch(
+            clearSiteDataForThisDomain({
+              siteData,
+              hostname,
+            }),
           );
           break;
         case SiteDataType.LOCALSTORAGE:
-          await clearLocalStorageForThisDomain(StoreUser.store.getState(), tab);
+          await StoreUser.store
+            .dispatch(clearLocalStorageForThisDomain(tab))
+            .unwrap();
           break;
         default:
           cadLog(

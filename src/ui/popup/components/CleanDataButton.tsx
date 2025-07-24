@@ -12,15 +12,15 @@
  */
 import * as React from 'react';
 import browser from 'webextension-polyfill';
-import type { State } from '../../../redux/Store';
 import {
   clearCookiesForThisDomain,
   clearLocalStorageForThisDomain,
   clearSiteDataForThisDomain,
 } from '../../../services/CleanupService';
 import type { SiteDataType } from '../../../typings/Enums';
-import { useUISelector } from '../../hooks';
+import { useUIDispatch } from '../../hooks';
 import { animateFlash } from '../popupLib';
+import { useCallback } from 'react';
 
 interface OwnProps {
   altColor?: boolean;
@@ -32,26 +32,6 @@ interface OwnProps {
   title?: string;
   text?: string;
 }
-
-const cleanSiteDataUI = async (
-  state: State,
-  siteData: SiteDataType | 'All',
-  hostname: string,
-  tab?: browser.Tabs.Tab,
-): Promise<boolean> => {
-  if (!hostname) return false;
-  let result = await clearSiteDataForThisDomain(state, siteData, hostname);
-  if (siteData === 'All') {
-    if (!tab) return false;
-    const cookieSuccess = await clearCookiesForThisDomain(state, tab);
-    const localStorageSuccess = await clearLocalStorageForThisDomain(
-      state,
-      tab,
-    );
-    result = result || cookieSuccess || localStorageSuccess;
-  }
-  return result;
-};
 
 const CleanDataButton: React.FunctionComponent<OwnProps> = (props) => {
   const {
@@ -66,7 +46,38 @@ const CleanDataButton: React.FunctionComponent<OwnProps> = (props) => {
     ...nativeProps
   } = props;
 
-  const state = useUISelector((state: State) => state);
+  const dispath = useUIDispatch();
+
+  const cleanSiteDataUI = useCallback(
+    async (
+      siteData: SiteDataType | 'All',
+      hostname: string,
+      tab?: browser.Tabs.Tab,
+    ): Promise<boolean> => {
+      if (!hostname) return false;
+
+      let result = await dispath(
+        clearSiteDataForThisDomain({ siteData, hostname }),
+      ).unwrap();
+
+      if (siteData === 'All') {
+        if (!tab) return false;
+
+        const cookieSuccess = await dispath(
+          clearCookiesForThisDomain(tab),
+        ).unwrap();
+
+        const localStorageSuccess = await dispath(
+          clearLocalStorageForThisDomain(tab),
+        ).unwrap();
+
+        result = result || cookieSuccess || localStorageSuccess;
+      }
+      
+      return result;
+    },
+    [dispath],
+  );
 
   return (
     <button
@@ -81,8 +92,8 @@ const CleanDataButton: React.FunctionComponent<OwnProps> = (props) => {
         let result = true;
         if (onClick) {
           result = await onClick.apply(this);
-        } else if (state && siteData && hostname) {
-          result = await cleanSiteDataUI(state, siteData, hostname, tab);
+        } else if (siteData && hostname) {
+          result = await cleanSiteDataUI(siteData, hostname, tab);
         }
         animateFlash(document.getElementById('cleanButtonContainer'), result);
       }}

@@ -13,11 +13,11 @@
  * SOFTWARE.
  */
 import type { Store } from '@reduxjs/toolkit';
-import type { State } from '../redux/Store';
+import type { configureWrapStore, State } from '../redux/Store';
 
 export default class StoreUser {
   public static init(store: Store<State>): void {
     StoreUser.store = store;
   }
-  protected static store: Store<State>;
+  protected static store: ReturnType<typeof configureWrapStore>;
 }

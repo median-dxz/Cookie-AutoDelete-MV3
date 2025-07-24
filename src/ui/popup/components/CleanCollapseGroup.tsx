@@ -21,7 +21,7 @@ import {
 } from '../../../services/CleanupService';
 import type { CleanupProperties } from '../../../typings/Cleanup';
 import { SiteDataType } from '../../../typings/Enums';
-import { useUIDispatch, useUISelector } from '../../hooks';
+import { useUIDispatch } from '../../hooks';
 import CleanDataButton from './CleanDataButton';
 
 interface OwnProps {
@@ -37,7 +37,6 @@ const CleanCollapseGroup: React.FunctionComponent<
   const { hostname, tab } = props;
 
   const dispatch = useUIDispatch();
-  const state = useUISelector((state) => state);
 
   const handleCookieCleanup = useCallback(
     (payload: CleanupProperties) => {
@@ -87,7 +86,7 @@ const CleanCollapseGroup: React.FunctionComponent<
         />
         <CleanDataButton
           onClick={async () => {
-            return await clearCookiesForThisDomain(state, tab);
+            return dispatch(clearCookiesForThisDomain(tab)).unwrap();
           }}
           title={browser.i18n.getMessage('manualCleanSiteDataCookiesDomain', [
             hostname,
@@ -101,7 +100,7 @@ const CleanCollapseGroup: React.FunctionComponent<
         />
         <CleanDataButton
           onClick={async () => {
-            return await clearLocalStorageForThisDomain(state, tab);
+            return dispatch(clearLocalStorageForThisDomain(tab)).unwrap();
           }}
           siteData={SiteDataType.LOCALSTORAGE}
           hostname={hostname}

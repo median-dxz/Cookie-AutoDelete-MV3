@@ -13,7 +13,6 @@
 import * as React from 'react';
 import { useCallback } from 'react';
 import browser from 'webextension-polyfill';
-import type { State } from '../../redux/Store';
 import {
   cadLog,
   getSetting,
@@ -33,12 +32,15 @@ import {
 import { useUIDispatch, useUISelector } from '../hooks';
 import IconButton from './IconButton';
 
+import { createAsyncThunk } from '@reduxjs/toolkit';
+import { shallowEqual } from 'react-redux';
 import {
   removeActivity,
   selectActivityLog,
 } from '../../redux/ActivityLogSlice';
 import { selectCache } from '../../redux/CacheSlice';
-import { shallowEqual } from 'react-redux';
+import { selectSettings, selectSettingValues } from '../../redux/SettingsSlice';
+import type { State } from '../../redux/Store';
 
 const createSummary = (cleanupObj: ActivityLog) => {
   const domainSet = new Set<string>();
@@ -131,142 +133,158 @@ interface OwnProps {
 
 type ActivityTableProps = OwnProps;
 
-const restoreCookies = async (
-  state: State,
-  log: ActivityLog,
-  onRemoveActivity: ActivityAction,
-) => {
-  const debug = getSetting(state, SettingID.DEBUG_MODE) as boolean;
-  const cleanReasonObjsArrays = Object.values(log.storeIds);
-  const promiseArr = [];
-  cadLog(
-    {
-      msg: `ActivityTable.restoreCookies:  Restoring Cookies for triggered ActivityLog entry`,
-      x: log,
-    },
-    debug,
-  );
-  for (const cleanReasonObjs of cleanReasonObjsArrays) {
-    for (const obj of cleanReasonObjs) {
-      // Cannot set cookies from file:// protocols
-      if (obj.cookie.preparedCookieDomain.startsWith('file:')) {
-        cadLog(
-          {
-            msg: 'Cookie appears to come from a local file.  Cannot be restored normally.',
-            type: 'warn',
-            x: obj.cookie,
-          },
-          debug,
-        );
-        continue;
-      }
-      // Silently ignore cookies with no domain
-      if (obj.cookie.preparedCookieDomain.trim() === '') {
-        cadLog(
-          {
-            msg: 'Cookie appears to have no domain.  Cannot restore.',
-            type: 'warn',
-            x: obj.cookie,
-          },
-          debug,
-        );
-        continue;
-      }
-      const {
-        domain,
-        expirationDate,
-        firstPartyDomain,
-        hostOnly,
-        httpOnly,
-        name,
-        sameSite,
-        secure,
-        storeId,
-        value,
-      } = obj.cookie;
-      // Prefix fun: https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#Cookie_prefixes
-      // Since the cookies returned through web-extension API should already be validated,
-      // we are not doing any validations for __Secure- cookies.
-      // For cookies starting with __Secure-, secure attribute should already be true,
-      // and url should already start with https://
-      // Only modify cookie names starting with __Host- as it shouldn't have domain.
-      const cookieProperties = {
-        ...returnOptionalCookieAPIAttributes(state, {
+const restoreCookies = createAsyncThunk(
+  'component/activityTable/restoreCookies',
+  async (
+    payload: { log: ActivityLog; onRemoveActivity: ActivityAction },
+    { getState },
+  ) => {
+    const { log, onRemoveActivity } = payload;
+    const state = getState() as State;
+    const debug = getSetting(state, SettingID.DEBUG_MODE) as boolean;
+    const cleanReasonObjsArrays = Object.values(log.storeIds);
+    const promiseArr = [];
+
+    cadLog(
+      {
+        msg: `ActivityTable.restoreCookies:  Restoring Cookies for triggered ActivityLog entry`,
+        x: log,
+      },
+      debug,
+    );
+
+    for (const cleanReasonObjs of cleanReasonObjsArrays) {
+      for (const obj of cleanReasonObjs) {
+        // Cannot set cookies from file:// protocols
+        if (obj.cookie.preparedCookieDomain.startsWith('file:')) {
+          cadLog(
+            {
+              msg: 'Cookie appears to come from a local file.  Cannot be restored normally.',
+              type: 'warn',
+              x: obj.cookie,
+            },
+            debug,
+          );
+          continue;
+        }
+        // Silently ignore cookies with no domain
+        if (obj.cookie.preparedCookieDomain.trim() === '') {
+          cadLog(
+            {
+              msg: 'Cookie appears to have no domain.  Cannot restore.',
+              type: 'warn',
+              x: obj.cookie,
+            },
+            debug,
+          );
+          continue;
+        }
+        const {
+          domain,
+          expirationDate,
           firstPartyDomain,
-        }),
-        domain: name.startsWith('__Host-') || hostOnly ? undefined : domain,
-        expirationDate,
-        httpOnly,
-        name,
-        sameSite,
-        secure,
-        storeId,
-        url: obj.cookie.preparedCookieDomain,
-        value,
-      };
-      promiseArr.push(browser.cookies.set(cookieProperties));
+          hostOnly,
+          httpOnly,
+          name,
+          sameSite,
+          secure,
+          storeId,
+          value,
+        } = obj.cookie;
+        // Prefix fun: https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#Cookie_prefixes
+        // Since the cookies returned through web-extension API should already be validated,
+        // we are not doing any validations for __Secure- cookies.
+        // For cookies starting with __Secure-, secure attribute should already be true,
+        // and url should already start with https://
+        // Only modify cookie names starting with __Host- as it shouldn't have domain.
+        const cookieProperties = {
+          ...returnOptionalCookieAPIAttributes(state, {
+            firstPartyDomain,
+          }),
+          domain: name.startsWith('__Host-') || hostOnly ? undefined : domain,
+          expirationDate,
+          httpOnly,
+          name,
+          sameSite,
+          secure,
+          storeId,
+          url: obj.cookie.preparedCookieDomain,
+          value,
+        };
+        promiseArr.push(browser.cookies.set(cookieProperties));
+      }
     }
-  }
-  try {
-    // If any error/rejection was thrown, the rest of the promises are not processed.
-    // FUTURE:  Use https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled to process all regardless of rejection. ** Perhaps too early to implement at this time 2020-May-03 **
-    await Promise.all(promiseArr).catch((e) => {
-      throwErrorNotification(
-        e,
-        getSetting(state, SettingID.NOTIFY_DURATION) as number,
-      );
-      cadLog(
-        {
-          msg: 'An Error occurred while trying to restore cookie(s).  The rest of the cookies to restore are not processed.',
-          type: 'error',
-          x: e,
-        },
-        debug,
-      );
-      throw e;
-    });
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error(e);
-    return;
-  }
-  // Restore didn't fail
-  onRemoveActivity(log);
-};
+    
+    try {
+      // If any error/rejection was thrown, the rest of the promises are not processed.
+      // FUTURE:  Use https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled to process all regardless of rejection. ** Perhaps too early to implement at this time 2020-May-03 **
+      await Promise.all(promiseArr).catch((e) => {
+        throwErrorNotification(
+          e,
+          getSetting(state, SettingID.NOTIFY_DURATION) as number,
+        );
+        cadLog(
+          {
+            msg: 'An Error occurred while trying to restore cookie(s).  The rest of the cookies to restore are not processed.',
+            type: 'error',
+            x: e,
+          },
+          debug,
+        );
+        throw e;
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error(e);
+      return;
+    }
+    // Restore didn't fail
+    onRemoveActivity(log);
+  },
+);
+
+const AlertNoLogsAvailable = () => (
+  <div
+    className="alert alert-primary col"
+    style={{ marginBlockEnd: '0.75rem' }}
+    role="alert"
+  >
+    <i>
+      {browser.i18n.getMessage('noCleanupLogText')}
+      <br /> {browser.i18n.getMessage('noPrivateLogging')}
+    </i>
+  </div>
+);
 
 const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
   const { numberToShow } = props;
   const dispatch = useUIDispatch();
-  const { cache, activityLog, state } = useUISelector((state) => {
-    return {
-      state,
-      cache: selectCache(state),
-      activityLog: selectActivityLog(state),
-    };
-  }, shallowEqual);
+
+  const cache = useUISelector(selectCache);
+  const activityLog = useUISelector(selectActivityLog);
+
+  const settings = useUISelector(
+    (state) =>
+      selectSettingValues(
+        selectSettings(state),
+        SettingID.CONTEXTUAL_IDENTITIES,
+      ),
+    shallowEqual,
+  );
 
   const onRemoveActivity = useCallback(
-    (activity: ActivityLog) => {
-      dispatch(removeActivity(activity));
+    (log: ActivityLog) => {
+      dispatch(removeActivity(log));
     },
     [dispatch],
   );
 
   if (activityLog.length === 0) {
-    return (
-      <div
-        className="alert alert-primary col"
-        style={{ marginBlockEnd: '0.75rem' }}
-        role="alert"
-      >
-        <i>
-          {browser.i18n.getMessage('noCleanupLogText')}
-          <br /> {browser.i18n.getMessage('noPrivateLogging')}
-        </i>
-      </div>
-    );
+    return <AlertNoLogsAvailable />;
   }
+
   const filtered = activityLog.slice(0, numberToShow || 10);
+
   return (
     <div
       className="accordion col px-0"
@@ -294,7 +312,9 @@ const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
                 <IconButton
                   className={'btn-primary'}
                   iconName={'undo'}
-                  onClick={() => restoreCookies(state, log, onRemoveActivity)}
+                  onClick={() =>
+                    dispatch(restoreCookies({ log, onRemoveActivity }))
+                  }
                   title={browser.i18n.getMessage('restoreText')}
                 />
               )) || <div className={'ms-auto'} style={{ minWidth: '42px' }} />}
@@ -344,7 +364,7 @@ const ActivityTable: React.FunctionComponent<ActivityTableProps> = (props) => {
                 return (
                   <div key={`${storeId}-${log.dateTime}`}>
                     {(storeIdEntries.length > 1 ||
-                      getSetting(state, SettingID.CONTEXTUAL_IDENTITIES)) && (
+                      settings.contextualIdentities) && (
                       <h6>
                         {cache[storeId] !== undefined
                           ? `${cache[storeId]} `

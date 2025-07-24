@@ -57,10 +57,7 @@ const wrapStore = createWrapStore();
 // to the proxy store. And the payload will be the **action object** that ui created.
 // So we need use the wrapper to extract the payload from the action object.
 const createPayloadWrapper =
-  <
-    P,
-    A extends UnknownAction | ThunkAction<void, State, any, UnknownAction>,
-  >(
+  <P, A extends UnknownAction | ThunkAction<void, State, any, UnknownAction>>(
     actionCreator: ActionCreator<A, [P]>,
   ): ActionCreator<A, [PayloadAction<P>]> =>
   ({ payload }) =>
