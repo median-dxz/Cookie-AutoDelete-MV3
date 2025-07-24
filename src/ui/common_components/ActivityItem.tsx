@@ -66,7 +66,7 @@ function ActivityItem({ log, index }: ActivityItemProps) {
 
   const restoreCookies = useCallback(async () => {
     const cleanReasonObjsArrays = Object.values(log.storeIds);
-    const promiseArr = [];
+    const promiseArr: Promise<browser.Cookies.Cookie>[] = [];
 
     cadLog(
       {
@@ -138,28 +138,40 @@ function ActivityItem({ log, index }: ActivityItemProps) {
       }
     }
 
-    try {
-      // If any error/rejection was thrown, the rest of the promises are not processed.
-      // FUTURE:  Use https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled to process all regardless of rejection. ** Perhaps too early to implement at this time 2020-May-03 **
-      await Promise.all(promiseArr).catch((e) => {
-        throwErrorNotification(e, settings.notificationOnScreen as number);
+    let someCookiesRestoredFailed = false;
+
+    // Use allSettled to process all regardless of rejection.
+    await Promise.allSettled(promiseArr).then((results) => {
+      const rejectedResults = results.filter(
+        (result) => result.status === 'rejected',
+      );
+      someCookiesRestoredFailed = rejectedResults.length > 0;
+
+      if (someCookiesRestoredFailed) {
+        throwErrorNotification(
+          new Error(
+            'Error(s) occurred while trying to restore cookie(s). Please check the log for more details.',
+          ),
+          settings.notificationOnScreen as number,
+        );
+      }
+
+      rejectedResults.forEach((result) => {
         cadLog(
           {
-            msg: 'An Error occurred while trying to restore cookie(s).  The rest of the cookies to restore are not processed.',
+            msg: 'An Error occurred while trying to restore cookie(s).',
             type: 'error',
-            x: e,
+            x: result.reason,
           },
           debug,
         );
-        throw e;
       });
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error(e);
-      return;
-    }
+    });
+
     // Restore didn't fail
-    dispatch(removeActivity(log));
+    if (!someCookiesRestoredFailed) {
+      dispatch(removeActivity(log));
+    }
   }, [debug, dispatch, firefox, log, settings.notificationOnScreen]);
 
   return (
