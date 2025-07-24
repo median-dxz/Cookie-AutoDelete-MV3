@@ -1470,7 +1470,7 @@ describe('Library Functions', () => {
         domain: 'example.com',
       };
       const results = returnOptionalCookieAPIAttributes(
-        state,
+        isFirefox(state.cache),
         cookieAPIAttributes,
       );
       expect(results).toEqual(
@@ -1494,7 +1494,7 @@ describe('Library Functions', () => {
         firstPartyDomain: 'example.com',
       };
       const results = returnOptionalCookieAPIAttributes(
-        state,
+        isFirefox(state.cache),
         cookieAPIAttributes,
       );
       expect(results).toEqual(
@@ -1517,7 +1517,7 @@ describe('Library Functions', () => {
         firstPartyDomain: '',
       };
       const results = returnOptionalCookieAPIAttributes(
-        state,
+        isFirefox(state.cache),
         cookieAPIAttributes,
       );
       expect(results).not.toHaveProperty('firstPartyDomain');

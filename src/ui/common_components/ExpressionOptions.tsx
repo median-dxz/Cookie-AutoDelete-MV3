@@ -78,12 +78,13 @@ class ExpressionOptions extends React.Component<ExpressionOptionsProps> {
 
   public async getAllCookies() {
     const { expression } = this.props;
+    const firefox = isFirefox(this.props.state.cache);
     const exp = expression.expression;
     let cookies: browser.Cookies.Cookie[] = [];
     if (exp.startsWith('/') && exp.endsWith('/')) {
       // Treat expression as regular expression.  Get all cookies then regex domain.
       const allCookies = await browser.cookies.getAll(
-        returnOptionalCookieAPIAttributes(this.props.state, {
+        returnOptionalCookieAPIAttributes(firefox, {
           storeId: this.toPublicStoreId(expression.storeId),
         }),
       );
@@ -99,7 +100,7 @@ class ExpressionOptions extends React.Component<ExpressionOptionsProps> {
       }
     } else if (exp.startsWith('file:')) {
       const allCookies = await browser.cookies.getAll(
-        returnOptionalCookieAPIAttributes(this.props.state, {
+        returnOptionalCookieAPIAttributes(firefox, {
           storeId: this.toPublicStoreId(expression.storeId),
         }),
       );
@@ -114,14 +115,14 @@ class ExpressionOptions extends React.Component<ExpressionOptionsProps> {
         // Check if expression was a CIDR Notation
         cidrEXP = ipaddr.parseCIDR(exp);
         allCookies = await browser.cookies.getAll(
-          returnOptionalCookieAPIAttributes(this.props.state, {
+          returnOptionalCookieAPIAttributes(firefox, {
             storeId: this.toPublicStoreId(expression.storeId),
           }),
         );
       } catch {
         // Not valid CIDR.  Proceed with default fetch.  Also applies to IP Addresses with no CIDR.
         cookies = await browser.cookies.getAll(
-          returnOptionalCookieAPIAttributes(this.props.state, {
+          returnOptionalCookieAPIAttributes(firefox, {
             domain: `${trimDotAndStar(exp)}${exp.endsWith('.') ? '.' : ''}`,
             storeId: this.toPublicStoreId(expression.storeId),
           }),

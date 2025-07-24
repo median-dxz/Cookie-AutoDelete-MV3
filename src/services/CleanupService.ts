@@ -37,6 +37,7 @@ import {
   getSetting,
   isAWebpage,
   isChrome,
+  isFirefox,
   isFirefoxNotAndroid,
   prepareCleanupDomains,
   prepareCookieDomain,
@@ -318,9 +319,10 @@ export const cleanCookies = async (
 ): Promise<void> => {
   const promiseArr: Promise<browser.Cookies.RemoveCallbackDetailsType | null>[] =
     [];
+  const firefox = isFirefox(state);
   markedForDeletion.forEach((obj) => {
     const cookieProperties = obj.cookie;
-    const cookieAPIProperties = returnOptionalCookieAPIAttributes(state, {
+    const cookieAPIProperties = returnOptionalCookieAPIAttributes(firefox, {
       firstPartyDomain: cookieProperties.firstPartyDomain,
       storeId: cookieProperties.storeId,
     });
@@ -351,8 +353,9 @@ export const clearCookiesForThisDomain = createAsyncThunk(
   async (tab: browser.Tabs.Tab, { getState }) => {
     const state = getState() as State;
     const hostname = getHostname(tab.url);
+    const firefox = isFirefox(state.cache);
     const getCookies = await browser.cookies.getAll(
-      returnOptionalCookieAPIAttributes(state, {
+      returnOptionalCookieAPIAttributes(firefox, {
         domain: hostname,
         storeId: tab.cookieStoreId,
       }),
@@ -364,7 +367,7 @@ export const clearCookiesForThisDomain = createAsyncThunk(
       let cookieDeletedCount = 0;
       for (const cookie of cookies) {
         const r = await browser.cookies.remove(
-          returnOptionalCookieAPIAttributes(state, {
+          returnOptionalCookieAPIAttributes(firefox, {
             firstPartyDomain: cookie.firstPartyDomain,
             name: cookie.name,
             storeId: cookie.storeId,
@@ -873,6 +876,7 @@ export const cleanCookiesOperation = async (
   },
 ) => {
   const debug = getSetting(state, SettingID.DEBUG_MODE) as boolean;
+  const firefox = isFirefox(state.cache);
   const deletedSiteDataArrays: ActivityLog['browsingDataCleanup'] = {};
   const setOfDeletedDomainCookies = new Set<string>();
   const cachedResults: Required<ActivityLog> = {
@@ -942,7 +946,7 @@ export const cleanCookiesOperation = async (
     let cookies: browser.Cookies.Cookie[] = [];
     try {
       cookies = await browser.cookies.getAll(
-        returnOptionalCookieAPIAttributes(state, {
+        returnOptionalCookieAPIAttributes(firefox, {
           storeId: id,
         }),
       );

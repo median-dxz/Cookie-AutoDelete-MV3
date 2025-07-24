@@ -16,6 +16,7 @@ import browser from 'webextension-polyfill';
 import {
   cadLog,
   getSetting,
+  isFirefox,
   returnOptionalCookieAPIAttributes,
   siteDataToBrowser,
   throwErrorNotification,
@@ -198,7 +199,7 @@ const restoreCookies = createAsyncThunk(
         // and url should already start with https://
         // Only modify cookie names starting with __Host- as it shouldn't have domain.
         const cookieProperties = {
-          ...returnOptionalCookieAPIAttributes(state, {
+          ...returnOptionalCookieAPIAttributes(isFirefox(state.cache), {
             firstPartyDomain,
           }),
           domain: name.startsWith('__Host-') || hostOnly ? undefined : domain,
@@ -214,7 +215,7 @@ const restoreCookies = createAsyncThunk(
         promiseArr.push(browser.cookies.set(cookieProperties));
       }
     }
-    
+
     try {
       // If any error/rejection was thrown, the rest of the promises are not processed.
       // FUTURE:  Use https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled to process all regardless of rejection. ** Perhaps too early to implement at this time 2020-May-03 **

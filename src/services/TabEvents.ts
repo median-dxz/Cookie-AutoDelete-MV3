@@ -29,10 +29,12 @@ import {
   getHostname,
   getSetting,
   isAWebpage,
+  isFirefox,
   isFirstPartyIsolate,
   returnOptionalCookieAPIAttributes,
 } from './Libs';
 import StoreUser from './StoreUser';
+import { selectSettingValues } from '../redux/SettingsSlice';
 
 export default class TabEvents extends StoreUser {
   public static onTabDiscarded(
@@ -228,6 +230,7 @@ export default class TabEvents extends StoreUser {
       },
       getSetting(StoreUser.store.getState(), SettingID.DEBUG_MODE) as boolean,
     );
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete TabEvents.tabToDomain[tabId];
   }
 
@@ -272,6 +275,16 @@ export default class TabEvents extends StoreUser {
       StoreUser.store.getState(),
       tab,
     );
+    const settings = selectSettingValues(
+      StoreUser.store.getState().settings,
+      SettingID.DEBUG_MODE,
+      SettingID.CLEANUP_CACHE,
+      SettingID.CLEANUP_INDEXEDDB,
+      SettingID.CLEANUP_LOCALSTORAGE,
+      SettingID.CLEANUP_PLUGINDATA,
+      SettingID.CLEANUP_SERVICEWORKERS,
+      SettingID.NUM_COOKIES_ICON,
+    );
 
     if (!cookies) {
       cadLog(
@@ -290,22 +303,16 @@ export default class TabEvents extends StoreUser {
 
     if (
       internalCookies.length === 0 &&
-      (getSetting(StoreUser.store.getState(), SettingID.CLEANUP_CACHE) ||
-        getSetting(StoreUser.store.getState(), SettingID.CLEANUP_INDEXEDDB) ||
-        getSetting(
-          StoreUser.store.getState(),
-          SettingID.CLEANUP_LOCALSTORAGE,
-        ) ||
-        getSetting(StoreUser.store.getState(), SettingID.CLEANUP_PLUGINDATA) ||
-        getSetting(
-          StoreUser.store.getState(),
-          SettingID.CLEANUP_SERVICEWORKERS,
-        )) &&
+      (settings.cacheCleanup ||
+        settings.indexedDBCleanup ||
+        settings.localStorageCleanup ||
+        settings.pluginDataCleanup ||
+        settings.serviceWorkersCleanup) &&
       isAWebpage(tab.url) &&
       !tab.url.startsWith('file:')
     ) {
       const cookiesAttributes = returnOptionalCookieAPIAttributes(
-        StoreUser.store.getState(),
+        isFirefox(StoreUser.store.getState().cache),
         {
           expirationDate: Math.floor(Date.now() / 1000 + 31557600),
           firstPartyDomain: (await isFirstPartyIsolate())
@@ -348,7 +355,7 @@ export default class TabEvents extends StoreUser {
 
     // Exclude Firefox Android for browser icons and badge texts
     if (
-      getSetting(StoreUser.store.getState(), SettingID.NUM_COOKIES_ICON) &&
+      settings.showNumOfCookiesInIcon &&
       (StoreUser.store.getState().cache.platformOs || '') !== 'android'
     ) {
       cadLog(

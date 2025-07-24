@@ -202,6 +202,7 @@ export const getAllCookiesForDomain = async (
   if (!tab.url || tab.url === '') return;
   if (tab.url.startsWith('about:') || tab.url.startsWith('chrome:')) return;
   const debug = getSetting(state, SettingID.DEBUG_MODE) as boolean;
+  const firefox = isFirefox(state.cache);
   const partialTabInfo = createPartialTabInfo(tab);
   const { cookieStoreId, url } = tab;
   const hostname = getHostname(url);
@@ -220,7 +221,7 @@ export const getAllCookiesForDomain = async (
 
   if (hostname.startsWith('file:')) {
     const allCookies = await browser.cookies.getAll(
-      returnOptionalCookieAPIAttributes(state, {
+      returnOptionalCookieAPIAttributes(firefox, {
         storeId: cookieStoreId,
       }),
     );
@@ -249,7 +250,7 @@ export const getAllCookiesForDomain = async (
       debug,
     );
     const cookiesFPI = await browser.cookies.getAll(
-      returnOptionalCookieAPIAttributes(state, {
+      returnOptionalCookieAPIAttributes(firefox, {
         domain: hostname,
         firstPartyDomain: mainDomain,
         storeId: cookieStoreId,
@@ -273,7 +274,7 @@ export const getAllCookiesForDomain = async (
       debug,
     );
     const cookiesFPIUseSite = await browser.cookies.getAll(
-      returnOptionalCookieAPIAttributes(state, {
+      returnOptionalCookieAPIAttributes(firefox, {
         domain: hostname,
         firstPartyDomain: `(${proto},${mainDomain})`,
         storeId: cookieStoreId,
@@ -295,7 +296,7 @@ export const getAllCookiesForDomain = async (
         debug,
       );
       const cookiesFPIUseSitePort = await browser.cookies.getAll(
-        returnOptionalCookieAPIAttributes(state, {
+        returnOptionalCookieAPIAttributes(firefox, {
           domain: hostname,
           firstPartyDomain: `(${proto},${mainDomain},${siteURL.port})`,
           storeId: cookieStoreId,
@@ -316,7 +317,7 @@ export const getAllCookiesForDomain = async (
       debug,
     );
     const cookiesDomain = await browser.cookies.getAll(
-      returnOptionalCookieAPIAttributes(state, {
+      returnOptionalCookieAPIAttributes(firefox, {
         domain: hostname,
         storeId: cookieStoreId,
       }),
@@ -777,7 +778,7 @@ export const returnMatchedExpressionObject = (
  * Return optional attributes for the Cookie API calls
  */
 export const returnOptionalCookieAPIAttributes = (
-  state: State,
+  isFirefox: boolean,
   cookieAPIAttributes: Partial<CookiePropertiesCleanup> & {
     [x: string]: unknown;
   },
@@ -786,7 +787,7 @@ export const returnOptionalCookieAPIAttributes = (
   // To fetch firstPartyIsolation cookies even if FPI is off,
   // set firstPartyDomain to null.
   if (
-    isFirefox(state.cache) &&
+    isFirefox &&
     !Object.prototype.hasOwnProperty.call(
       cookieAPIAttributes,
       'firstPartyDomain',
@@ -798,7 +799,7 @@ export const returnOptionalCookieAPIAttributes = (
     };
   }
   // Only remove FPI Property if it is NOT firefox.
-  if (!isFirefox(state.cache)) {
+  if (!isFirefox) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { firstPartyDomain, ...rest } = cookieAPIAttributes;
     return rest;
