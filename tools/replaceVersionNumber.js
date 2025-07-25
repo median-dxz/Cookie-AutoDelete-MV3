@@ -6,8 +6,12 @@ import fs from 'node:fs';
 const ROOTDIR = process.cwd();
 const REGVER = RegExp(/^\d+\.\d+\.\d+$/);
 
+/**
+ * @param {fs.PathOrFileDescriptor} fp
+ * @param {string} version
+ */
 function changeVersion(fp, version) {
-  let jsonData = require(fp);
+  let jsonData = JSON.parse(fs.readFileSync(fp, 'utf8'));
   if (jsonData.version === undefined) {
     console.error('ERROR:  No version key found');
     return -1;
@@ -61,7 +65,7 @@ if (versionTag) {
       console.log('Version from NPM pkg:  %s', pkgVer);
       if (pkgVer === versionTag) {
         console.log('Version matches.  Continuing with Version Replacement.');
-        changeVersion(join(ROOTDIR, 'extension', 'manifest.json'), versionTag);
+        changeVersion(join(ROOTDIR, 'manifest.json'), versionTag);
         console.log('Replacements done with ' + versionTag);
       } else {
         console.error(

@@ -1,20 +1,41 @@
 import { crx } from '@crxjs/vite-plugin';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
-import zip from 'vite-plugin-zip-pack';
-import manifest from './manifest';
+import manifestJson from './manifest.json';
+import packageJson from './package.json';
 import * as DIR from './tools/directories';
+
+type FixEmailFields<T> = {
+  [TKey in keyof T]: TKey extends 'author' ? { email: string } : T[TKey];
+};
+
+const manifest = {
+  ...manifestJson,
+  version: packageJson.version,
+} as unknown as FixEmailFields<typeof manifestJson>;
 
 export default defineConfig({
   publicDir: DIR.EXT,
   build: {
-    outDir: DIR.BUILDS,
+    outDir: DIR.DIST,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (
+            id.includes('react') ||
+            id.includes('redux') ||
+            id.includes('fontawsome')
+          ) {
+            return 'react';
+          }
+          if (id.includes('webextension-polyfill')) {
+            return 'webextension-polyfill';
+          }
+        },
+      },
+    },
   },
-  plugins: [
-    react(),
-    crx({ manifest }),
-    zip({ outDir: DIR.BUILDS, outFileName: 'release.zip' }),
-  ],
+  plugins: [react(), crx({ manifest })],
   css: {
     preprocessorOptions: {
       scss: {

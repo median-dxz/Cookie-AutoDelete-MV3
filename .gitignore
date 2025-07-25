@@ -43,6 +43,7 @@ report.html
 *bundle.js
 bundles/
 builds/
+dist/
 
 .directory
 
