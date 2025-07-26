@@ -73,12 +73,7 @@ export default class ContextMenuEvents extends StoreUser {
   public static menuInit(): void {
     let separatorId = 0;
     if (!browser.contextMenus) return;
-    if (
-      !getSetting(
-        StoreUser.store.getState(),
-        SettingID.CONTEXT_MENUS,
-      ) as boolean
-    )
+    if (!getSetting(StoreUser.store.getState(), SettingID.CONTEXT_MENUS))
       return;
     if (ContextMenuEvents.isInitialized) return;
     ContextMenuEvents.isInitialized = true;
@@ -304,6 +299,8 @@ export default class ContextMenuEvents extends StoreUser {
   }
 
   public static updateMenuItemCheckbox(id: string, checked: boolean): void {
+    if (!getSetting(StoreUser.store.getState(), SettingID.CONTEXT_MENUS))
+      return;
     browser.contextMenus
       .update(id, {
         checked,

@@ -187,7 +187,13 @@ describe('ContextMenuEvents', () => {
   });
 
   describe('updateMenuItemCheckbox', () => {
+    it('should do nothing if contextMenus setting is disabled', () => {
+      TestStore.changeSetting(SettingID.CONTEXT_MENUS, false);
+      ContextMenuEvents.updateMenuItemCheckbox('test', true);
+      expect(global.browser.contextMenus.update).not.toHaveBeenCalled();
+    });
     it('should work', () => {
+      TestStore.changeSetting(SettingID.CONTEXT_MENUS, true);
       when(global.browser.contextMenus.update)
         .calledWith(expect.any(String), expect.any(Object))
         .mockResolvedValue(true as never);
@@ -683,7 +689,8 @@ describe('ContextMenuEvents', () => {
         },
         sampleTab,
       );
-      expect(global.browser.tabs.create).toHaveBeenCalledTimes(1);
+      expect(global.browser.runtime.openOptionsPage).toHaveBeenCalledTimes(1);
     });
+
   });
 });
