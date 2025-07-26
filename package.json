@@ -46,6 +46,7 @@
     "@types/webextension-polyfill": "^0.12.3",
     "@vitejs/plugin-react": "^4.7.0",
     "archiver": "^7.0.1",
+    "cross-env": "^10.0.0",
     "eslint": "^9.31.0",
     "eslint-config-prettier": "^10.1.5",
     "eslint-plugin-react": "^7.37.5",
@@ -68,7 +69,8 @@
     }
   },
   "scripts": {
-    "dev": "vite",
+    "dev:chrome": "cross-env VITE_BROWSER=chrome vite",
+    "dev:firefox": "cross-env VITE_BROWSER=firefox vite",
     "build": "npm run compile && node ./tools/buildFilesDev.js",
     "compile": "vite build",
     "lint": "eslint -c eslint.config.js --ext .ts,.tsx src/",
