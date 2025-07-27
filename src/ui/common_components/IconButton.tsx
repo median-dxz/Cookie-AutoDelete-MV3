@@ -57,7 +57,6 @@ export default function IconButton({
       className={`btn ${className}`}
       style={{
         cursor: tag === 'input' ? 'pointer' : undefined,
-        margin: '0 2px',
         ...styleReact,
       }}
     >

@@ -269,7 +269,6 @@ class App extends Component<PopupAppComponentProps, InitialState> {
                 className="btn btn-warning dropdown-toggle dropdown-toggle-split"
                 style={{
                   borderLeftColor: 'rgb(176, 132, 0)',
-                  transform: 'translate3d(-2px, 0px, 0px)',
                 }}
               >
                 <span className="sr-only">
@@ -342,9 +341,9 @@ class App extends Component<PopupAppComponentProps, InitialState> {
         {addableHostnames.map((addableHostname) => (
           <div key={addableHostname} className="row align-items-center mt-2">
             <div className="col">{addableHostname}</div>
-            <div className="btn-group col flex-grow-0" role="group">
+            <div className="btn-group col flex-grow-0 gap-1" role="group">
               <IconButton
-                className="btn-secondary"
+                className="btn btn-secondary"
                 onClick={() => {
                   onNewExpression({
                     expression: localFileToRegex(addableHostname),
@@ -358,7 +357,7 @@ class App extends Component<PopupAppComponentProps, InitialState> {
               />
 
               <IconButton
-                className="btn-primary"
+                className="btn btn-primary"
                 onClick={() => {
                   onNewExpression({
                     expression: localFileToRegex(addableHostname),

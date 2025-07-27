@@ -226,7 +226,7 @@ class Settings extends React.Component<SettingProps> {
       <div style={style}>
         <h1>{browser.i18n.getMessage('settingsText')}</h1>
         <br />
-        <div className="row g-0 justify-content-between justify-content-md-start">
+        <div className="row g-0 gap-1 justify-content-between justify-content-md-start">
           <div className="col-7 col-md-auto">
             <IconButton
               className="btn btn-primary"
@@ -273,7 +273,7 @@ class Settings extends React.Component<SettingProps> {
         {error !== '' ? (
           <div
             onClick={() => this.setState({ error: '' })}
-            className="row alert alert-danger alertPreWrap"
+            className="row g-0 alert alert-danger alertPreWrap"
           >
             {error}
           </div>
@@ -283,7 +283,7 @@ class Settings extends React.Component<SettingProps> {
         {success !== '' ? (
           <div
             onClick={() => this.setState({ success: '' })}
-            className="row alert alert-success alertPreWrap"
+            className="row ms-0 alert alert-success alertPreWrap"
           >
             {browser.i18n.getMessage('successText')} {success}
           </div>
