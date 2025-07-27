@@ -1,8 +1,16 @@
 {
   "releases": [
     {
-      "version": "3.9.0",
-      "notes": []
+      "version": "3.8.3",
+      "notes": [
+        "Updated:  Use Redux Toolkit",
+        "Toolchain:  Replace Webpack with CRXJS, improve build process",
+        "Updated:  Upgrade to Bootstrap 5",
+        "Updated:  Update other dependencies",
+        "Fixed:  Check tabId on TabUpdated event",
+        "Fixed:  Check menu item availability before changing active mode",
+        "Updated:  Migrate to Manifest V3"
+      ]
     },
     {
       "version": "3.8.2",
