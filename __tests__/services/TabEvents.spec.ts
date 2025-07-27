@@ -307,7 +307,10 @@ describe('TabEvents', () => {
     beforeAll(() => {
       when(spyTabEvents.getAllCookieActions)
         .calledWith({} as browser.Tabs.Tab)
-        .mockResolvedValue(undefined as any);
+        .mockResolvedValue(undefined);
+      when(global.browser.tabs.get)
+        .calledWith(0)
+        .mockResolvedValue({} as browser.Tabs.Tab);
     });
     afterAll(() => {
       spyTabEvents.getAllCookieActions.mockRestore();
@@ -321,12 +324,14 @@ describe('TabEvents', () => {
       expect(spyTabEvents.getAllCookieActions).not.toHaveBeenCalled();
     });
 
-    it('should trigger getAllCookieActions', () => {
+    it('should trigger getAllCookieActions', async () => {
       TabEvents.onTabUpdate(0, sampleChangeInfo, {
         ...sampleTab,
         status: 'complete',
       });
       jest.runAllTimers();
+      // wait for the promise in setTimeout to resolve
+      await Promise.resolve();
       expect(spyTabEvents.getAllCookieActions).toHaveBeenCalledTimes(1);
     });
 
@@ -341,7 +346,7 @@ describe('TabEvents', () => {
       );
     });
 
-    it('should not queue getAllCookieActions if one is pending already', () => {
+    it('should not queue getAllCookieActions if one is pending already', async () => {
       TestStore.changeSetting(SettingID.DEBUG_MODE, true);
       expect(TestTabEvents.getOnTabUpdateDelay()).toBe(false);
       TabEvents.onTabUpdate(0, sampleChangeInfo, {
@@ -354,7 +359,21 @@ describe('TabEvents', () => {
         status: 'complete',
       });
       jest.runAllTimers();
+      await Promise.resolve();
       expect(spyTabEvents.getAllCookieActions).toHaveBeenCalledTimes(1);
+    });
+
+    it('should do nothing if the tab is no longer valid (e.g., has been removed)', async () => {
+      when(global.browser.tabs.get)
+        .calledWith(1)
+        .mockRejectedValue(new Error());
+      TabEvents.onTabUpdate(1, sampleChangeInfo, {
+        ...sampleTab,
+        status: 'complete',
+      });
+      jest.runAllTimers();
+      await Promise.resolve();
+      expect(spyTabEvents.getAllCookieActions).not.toHaveBeenCalled();
     });
   });
 

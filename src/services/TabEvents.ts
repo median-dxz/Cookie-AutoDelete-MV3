@@ -106,14 +106,30 @@ export default class TabEvents extends StoreUser {
             },
             debug,
           );
-          TabEvents.getAllCookieActions(tab);
-          TabEvents.onTabUpdateDelay = false;
-          cadLog(
-            {
-              msg: 'TabEvents.onTabUpdate: actions have been processed and flag cleared.',
-            },
-            debug,
-          );
+          // Need to check if the tab is still valid.
+          browser.tabs
+            .get(tabId)
+            .then(() => {
+              TabEvents.getAllCookieActions(tab);
+              cadLog(
+                {
+                  msg: 'TabEvents.onTabUpdate: actions have been processed and flag cleared.',
+                },
+                debug,
+              );
+            })
+            .catch(() => {
+              cadLog(
+                {
+                  msg: 'TabEvents.onTabUpdate: Tab is no longer valid.  Skipping actions.',
+                  x: { tabId, changeInfo, partialTabInfo },
+                },
+                debug,
+              );
+            })
+            .finally(() => {
+              TabEvents.onTabUpdateDelay = false;
+            });
         }, 750);
       } else {
         cadLog(
