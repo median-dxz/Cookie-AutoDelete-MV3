@@ -1,9 +1,12 @@
 import { crx } from '@crxjs/vite-plugin';
 import react from '@vitejs/plugin-react';
+import { resolve } from 'node:path';
 import { defineConfig, UserConfig } from 'vite';
 import manifestJson from './manifest.json';
 import packageJson from './package.json';
 import * as DIR from './tools/directories';
+
+const dirname = import.meta.dirname || new URL('.', import.meta.url).pathname;
 
 type FixEmailFields<T> = {
   [TKey in keyof T]: TKey extends 'author' ? { email: string } : T[TKey];
@@ -28,9 +31,10 @@ export default defineConfig(() => {
   }
 
   return {
-    publicDir: DIR.EXT,
+    publicDir: resolve(dirname, DIR.EXT),
+    root: resolve(dirname, 'src'),
     build: {
-      outDir: DIR.DIST,
+      outDir: resolve(dirname, DIR.EXT),
       rollupOptions: {
         output: {
           manualChunks(id) {
