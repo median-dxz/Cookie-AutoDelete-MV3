@@ -34,7 +34,8 @@ export default defineConfig(() => {
     publicDir: resolve(dirname, DIR.EXT),
     root: resolve(dirname, 'src'),
     build: {
-      outDir: resolve(dirname, DIR.EXT),
+      outDir: resolve(dirname, DIR.DIST),
+      emptyOutDir: true,
       rollupOptions: {
         output: {
           manualChunks(id) {
