@@ -443,7 +443,7 @@ export default class ContextMenuEvents extends StoreUser {
           },
           debug,
         );
-        StoreUser.store.dispatch<any>(
+        StoreUser.store.dispatch(
           cookieCleanup({
             greyCleanup: false,
             ignoreOpenTabs: false,
@@ -457,7 +457,7 @@ export default class ContextMenuEvents extends StoreUser {
           },
           debug,
         );
-        StoreUser.store.dispatch<any>(
+        StoreUser.store.dispatch(
           cookieCleanup({
             greyCleanup: false,
             ignoreOpenTabs: true,

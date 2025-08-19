@@ -127,7 +127,7 @@ export default class SettingService extends StoreUser {
     await checkIfProtected(StoreUser.store.getState());
 
     // Validate Settings Again
-    StoreUser.store.dispatch<any>(validateSettings());
+    StoreUser.store.dispatch(validateSettings());
   }
 
   private static getCurrent(s: SettingID): boolean | number | string {

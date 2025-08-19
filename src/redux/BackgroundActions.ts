@@ -12,6 +12,7 @@
  */
 import {
   createAction,
+  createAsyncThunk,
   type ActionCreator,
   type ThunkAction,
   type UnknownAction,
@@ -37,19 +38,19 @@ import type {
 } from '../typings/Global';
 import { addActivity } from './ActivityLogSlice';
 import { incrementCookieDeletedCounter } from './CookieDeletedCounterSlices';
+import {
+  addExpression as addExpressionAction,
+  clearExpressions as clearExpressionsAction,
+  removeExpression as removeExpressionAction,
+  removeList as removeListAction,
+  updateExpression as updateExpressionAction,
+} from './ListsSlice';
 import { ReduxConstants } from './ReduxConstants';
 import {
   initialState as initialSettings,
   updateSetting,
 } from './SettingsSlice';
 import type { State } from './Store';
-import {
-  addExpression as addExpressionAction,
-  clearExpressions as clearExpressionsAction,
-  removeExpression as removeExpressionAction,
-  updateExpression as updateExpressionAction,
-  removeList as removeListAction,
-} from './ListsSlice';
 
 // Those actions can only work in background scripts. To use them in the UI,
 // invoke their UI versions. webext-redux will dispatch these thunk actions through aliases.
@@ -251,35 +252,37 @@ export const validateSettings: ActionCreator<
 };
 
 // Cookie Cleanup operation that is to be called from the React UI
-export const cookieCleanup: ActionCreator<
-  ThunkAction<void, State, null, UnknownAction>,
-  [CleanupProperties]
-> =
-  (options = { greyCleanup: false, ignoreOpenTabs: false }) =>
-  async (dispatch, getState) => {
-    const cleanupDoneObject = await cleanCookiesOperation(getState(), options);
+export const cookieCleanup = createAsyncThunk(
+  'actions/background/cookieCleanup',
+  async (
+    options: CleanupProperties = {
+      greyCleanup: false,
+      ignoreOpenTabs: false,
+    },
+    { dispatch, getState },
+  ) => {
+    const state = getState() as State;
+    const cleanupDoneObject = await cleanCookiesOperation(state, options);
     if (!cleanupDoneObject) return;
+
     const { setOfDeletedDomainCookies, cachedResults } = cleanupDoneObject;
     const { browsingDataCleanup, recentlyCleaned, siteDataCleaned } =
       cachedResults;
 
     // Increment the count
-    if (
-      recentlyCleaned !== 0 &&
-      getSetting(getState(), SettingID.STAT_LOGGING)
-    ) {
+    if (recentlyCleaned !== 0 && getSetting(state, SettingID.STAT_LOGGING)) {
       dispatch(incrementCookieDeletedCounter(recentlyCleaned));
     }
 
     if (
       (recentlyCleaned !== 0 || siteDataCleaned) &&
-      getSetting(getState(), SettingID.STAT_LOGGING)
+      getSetting(state, SettingID.STAT_LOGGING)
     ) {
       dispatch(addActivity(cachedResults));
     }
 
     // Show notifications after cleanup
-    if (getSetting(getState(), SettingID.NOTIFY_AUTO)) {
+    if (getSetting(state, SettingID.NOTIFY_AUTO)) {
       const domainsAll = new Set<string>();
       Object.values(cachedResults.storeIds).forEach((v) => {
         v.forEach((d) => domainsAll.add(d.cookie.hostname));
@@ -302,7 +305,7 @@ export const cookieCleanup: ActionCreator<
           (setOfDeletedDomainCookies as string[]).slice(0, 5).join(', '),
         ]);
         showNotification({
-          duration: getSetting(getState(), SettingID.NOTIFY_DURATION) as number,
+          duration: getSetting(state, SettingID.NOTIFY_DURATION) as number,
           msg: `${notifyMessage} ...`,
           title: browser.i18n.getMessage('notificationTitle'),
         });
@@ -310,16 +313,18 @@ export const cookieCleanup: ActionCreator<
       }
       // Here we just show a generic 'Site Data' cleaned instead of the specifics, with all domains.
       if (siteDataCleaned && browsingDataCleanup && bDomains.size > 0) {
-        await showNotification({
-          duration: getSetting(getState(), SettingID.NOTIFY_DURATION) as number,
+        showNotification({
+          duration: getSetting(state, SettingID.NOTIFY_DURATION) as number,
           msg: browser.i18n.getMessage('activityLogSiteDataDomainsText', [
             browser.i18n.getMessage('siteDataText'),
             Array.from(bDomains).join(', '),
           ]),
           title: browser.i18n.getMessage('notificationTitleSiteData'),
         });
+        await sleep(750);
       }
     }
-  };
+  },
+);
 
 export const handleStartUp = createAction(ReduxConstants.ON_STARTUP);
