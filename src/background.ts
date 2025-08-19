@@ -27,6 +27,7 @@ import {
   extractMainDomain,
   getSetting,
   sleep,
+  waitUntil,
 } from './services/Libs';
 import SettingService from './services/SettingService';
 import StoreUser from './services/StoreUser';
@@ -54,15 +55,14 @@ let store: ReturnType<typeof configureWrapStore>;
 
 // Delay saving to disk to queue up actions
 let delaySave = false;
-const saveToStorage = () => {
+const saveToStorage = async () => {
   if (!delaySave) {
     delaySave = true;
-    setTimeout(() => {
-      delaySave = false;
-      return browser.storage.local.set({
-        state: JSON.stringify(store.getState()),
-      });
-    }, 1000);
+    await waitUntil(sleep(1000));
+    delaySave = false;
+    return browser.storage.local.set({
+      state: JSON.stringify(store.getState()),
+    });
   }
 };
 
@@ -248,7 +248,7 @@ browser.runtime.onInstalled.addListener(async (details) => {
       break;
     case 'update':
       // Validate Settings to get new settings (if any).
-      store.dispatch<any>(validateSettings());
+      store.dispatch(validateSettings());
       if (convertVersionToNumber(details.previousVersion) < 350) {
         // Migrate State Setting Name localstorageCleanup to localStorageCleanup
         if (store.getState().settings[SettingID.CLEANUP_LOCALSTORAGE_OLD]) {

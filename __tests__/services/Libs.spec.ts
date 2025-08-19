@@ -1568,8 +1568,7 @@ describe('Library Functions', () => {
       );
 
       expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 1000);
-
-      jest.runAllTimers();
+      await jest.advanceTimersByTimeAsync(1000);
       expect(global.browser.notifications.clear).toHaveBeenCalledTimes(1);
     });
 
@@ -1717,7 +1716,7 @@ describe('Library Functions', () => {
       global.browser.runtime.getURL.mockClear();
     });
 
-    it('should expect one call to browser.notifications.create', () => {
+    it('should expect one call to browser.notifications.create', async () => {
       throwErrorNotification({ name: 'Test Error', message: 'An ERROR!' }, 1);
       expect(global.browser.notifications.create).toHaveBeenCalled();
       expect(global.browser.notifications.create.mock.calls[0][0]).toEqual(
@@ -1730,9 +1729,9 @@ describe('Library Functions', () => {
           type: 'basic',
         }),
       );
-      expect(setTimeout).toHaveBeenCalled();
+
       expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 1000);
-      jest.runAllTimers();
+      await jest.advanceTimersByTimeAsync(1000);
       expect(global.browser.notifications.clear).toHaveBeenCalledTimes(1);
     });
   });

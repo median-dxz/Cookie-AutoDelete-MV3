@@ -833,9 +833,9 @@ export const showNotification = (
     }`,
     type: 'basic',
   });
-  setTimeout(() => {
-    browser.notifications.clear(sid);
-  }, x.duration * 1000);
+  void waitUntil(sleep(x.duration * 1000)).then(() =>
+    browser.notifications.clear(sid),
+  );
 };
 
 /**
@@ -883,9 +883,9 @@ export const throwErrorNotification = (e: Error, duration: number): void => {
     title: browser.i18n.getMessage('errorText'),
     type: 'basic',
   });
-  setTimeout(() => {
-    browser.notifications.clear(nid);
-  }, duration * 1000);
+  void waitUntil(sleep(duration * 1000)).then(() =>
+    browser.notifications.clear(nid),
+  );
 };
 
 /**
