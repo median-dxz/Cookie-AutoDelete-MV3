@@ -23,6 +23,7 @@ type MockedBrowser = {
   runtime: {
     getManifest: jest.Mock;
     getURL: jest.Mock;
+    getPlatformInfo: jest.Mock;
   };
   notifications: {
     create: jest.Mock;

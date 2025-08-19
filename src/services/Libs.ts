@@ -851,10 +851,23 @@ export const siteDataToBrowser = (siteData: SiteDataType): string =>
  * Ensures no 0 second setTimeout otherwise side effects.
  * Ensures we don't go over max signed 32-bit Int of 2,147,483,647
  */
-export const sleep = (ms: number): Promise<any> => {
+export const sleep = (ms: number): Promise<void> => {
   return new Promise((r) =>
     setTimeout(r, ms < 250 ? 250 : ms > 2147483500 ? 2147483500 : ms),
   );
+};
+
+/**
+ * Waits until the promise resolves, while keeping the extension alive.
+ */
+export const waitUntil = async (promise: Promise<unknown>) => {
+  browser.runtime.getPlatformInfo(); // Refresh SW lifecycle immediately.
+  const keepAlive = setInterval(browser.runtime.getPlatformInfo, 25 * 1000);
+  try {
+    await promise;
+  } finally {
+    clearInterval(keepAlive);
+  }
 };
 
 /**

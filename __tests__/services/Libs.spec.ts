@@ -50,6 +50,7 @@ import {
   trimDot,
   undefinedIsTrue,
   validateExpressionDomain,
+  waitUntil,
 } from '../../src/services/Libs';
 import {
   BrowserName,
@@ -61,6 +62,7 @@ import {
 import { Expression, StoreIdToExpressionList } from '../../src/typings/Global';
 
 import { initialState } from '../__mock__/initialState';
+import { setupFakeTimers } from '../__mock__/setupFakeTimers';
 
 const mockCookie: browser.Cookies.Cookie = {
   domain: 'domain.com',
@@ -1525,6 +1527,8 @@ describe('Library Functions', () => {
   });
 
   describe('showNotification()', () => {
+    setupFakeTimers();
+
     beforeAll(() => {
       when(global.browser.notifications.create)
         .calledWith(expect.any(String), expect.any(Object))
@@ -1542,15 +1546,14 @@ describe('Library Functions', () => {
         .calledWith(expect.anything())
         .mockReturnValue('');
     });
+
     afterAll(() => {
       global.browser.i18n.getMessage.mockClear();
       global.browser.runtime.getManifest.mockClear();
       global.browser.runtime.getURL.mockClear();
-      jest.clearAllTimers();
     });
 
     it('should expect one call to browser.notifications.create with default title', async () => {
-      const spyTimeout = jest.spyOn(global, 'setTimeout');
       showNotification({ duration: 1, msg: 'Test Notification' });
       expect(global.browser.notifications.create).toHaveBeenCalled();
       expect(global.browser.notifications.create.mock.calls[0][0]).toEqual(
@@ -1563,8 +1566,8 @@ describe('Library Functions', () => {
           type: 'basic',
         }),
       );
-      expect(spyTimeout).toHaveBeenCalled();
-      expect(spyTimeout).toHaveBeenCalledWith(expect.any(Function), 1000);
+
+      expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 1000);
 
       jest.runAllTimers();
       expect(global.browser.notifications.clear).toHaveBeenCalledTimes(1);
@@ -1576,8 +1579,9 @@ describe('Library Functions', () => {
         msg: 'Test Notification',
         title: 'custom',
       });
-      expect(global.browser.notifications.create).toHaveBeenCalled();
-      expect(global.browser.notifications.create.mock.calls[0][1]).toEqual(
+
+      expect(global.browser.notifications.create).toHaveBeenCalledWith(
+        expect.any(String),
         expect.objectContaining({
           message: 'Test Notification',
           title: 'CAD 3.99.99 - custom',
@@ -1599,12 +1603,7 @@ describe('Library Functions', () => {
   });
 
   describe('sleep()', () => {
-    jest.useFakeTimers();
-    const spySetTimeout = jest.spyOn(global, 'setTimeout');
-    afterEach(() => {
-      spySetTimeout.mockClear();
-      jest.clearAllTimers();
-    });
+    setupFakeTimers();
 
     it('should return undefined as result', () => {
       expect.assertions(1);
@@ -1617,8 +1616,8 @@ describe('Library Functions', () => {
       expect.assertions(3);
       const result = sleep(100).then((r) => {
         expect(r).toEqual(undefined);
-        expect(spySetTimeout).toHaveBeenCalledTimes(1);
-        expect(spySetTimeout).toHaveBeenCalledWith(expect.any(Function), 250);
+        expect(setTimeout).toHaveBeenCalledTimes(1);
+        expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 250);
       });
       jest.runAllTimers();
       return result;
@@ -1628,8 +1627,8 @@ describe('Library Functions', () => {
       expect.assertions(3);
       const result = sleep(1500).then((r) => {
         expect(r).toEqual(undefined);
-        expect(spySetTimeout).toHaveBeenCalledTimes(1);
-        expect(spySetTimeout).toHaveBeenCalledWith(expect.any(Function), 1500);
+        expect(setTimeout).toHaveBeenCalledTimes(1);
+        expect(setTimeout).toHaveBeenCalledWith(expect.any(Function), 1500);
       });
       jest.runAllTimers();
       return result;
@@ -1639,14 +1638,44 @@ describe('Library Functions', () => {
       expect.assertions(3);
       const result = sleep(2345678901).then((r) => {
         expect(r).toEqual(undefined);
-        expect(spySetTimeout).toHaveBeenCalledTimes(1);
-        expect(spySetTimeout).toHaveBeenCalledWith(
+        expect(setTimeout).toHaveBeenCalledTimes(1);
+        expect(setTimeout).toHaveBeenCalledWith(
           expect.any(Function),
           2147483500,
         );
       });
       jest.runAllTimers();
       return result;
+    });
+  });
+
+  describe('waitUntil()', () => {
+    setupFakeTimers();
+
+    it('should set and clear interval when promise resolves', async () => {
+      const waitPromise = waitUntil(Promise.resolve());
+
+      expect(setInterval).toHaveBeenCalled();
+      await expect(waitPromise).resolves.toEqual(undefined);
+      expect(clearInterval).toHaveBeenCalledTimes(1);
+    });
+
+    it('should clear interval when promise rejects', async () => {
+      const waitPromise = waitUntil(Promise.reject(new Error('fail')));
+
+      await expect(waitPromise).rejects.toThrow('fail');
+      expect(clearInterval).toHaveBeenCalledTimes(1);
+    });
+
+    it('should trigger runtime.getPlatformInfo once if not resolved within 30s', async () => {
+      const waitPromise = waitUntil(sleep(30_000));
+
+      jest.advanceTimersByTime(30_000);
+      await waitPromise;
+
+      expect(
+        global.browser.runtime.getPlatformInfo.mock.calls.length,
+      ).toBeGreaterThanOrEqual(2);
     });
   });
 
@@ -1662,6 +1691,8 @@ describe('Library Functions', () => {
   });
 
   describe('throwErrorNotification()', () => {
+    setupFakeTimers();
+
     beforeAll(() => {
       when(global.browser.notifications.create)
         .calledWith(expect.any(String), expect.any(Object))
@@ -1679,12 +1710,7 @@ describe('Library Functions', () => {
         .calledWith(expect.anything())
         .mockReturnValue('');
     });
-    beforeEach(() => {
-      jest.spyOn(global, 'setTimeout');
-    });
-    afterEach(() => {
-      jest.clearAllTimers();
-    });
+
     afterAll(() => {
       global.browser.i18n.getMessage.mockClear();
       global.browser.runtime.getManifest.mockClear();
