@@ -75,8 +75,6 @@ export default class ContextMenuEvents extends StoreUser {
     if (!browser.contextMenus) return;
     if (!getSetting(StoreUser.store.getState(), SettingID.CONTEXT_MENUS))
       return;
-    if (ContextMenuEvents.isInitialized) return;
-    ContextMenuEvents.isInitialized = true;
     // Clean Option Group
     ContextMenuEvents.menuCreate({
       id: ContextMenuEvents.MenuID.PARENT_CLEAN,
@@ -275,7 +273,6 @@ export default class ContextMenuEvents extends StoreUser {
       ContextMenuEvents.onContextMenuClicked,
       EventListenerAction.REMOVE,
     );
-    ContextMenuEvents.isInitialized = false;
     cadLog(
       {
         msg: `ContextMenuEvents.menuClear:  Context Menu has been removed.`,
@@ -871,6 +868,4 @@ export default class ContextMenuEvents extends StoreUser {
     });
     StoreUser.store.dispatch(addExpressionUI(payload));
   }
-
-  protected static isInitialized = false;
 }

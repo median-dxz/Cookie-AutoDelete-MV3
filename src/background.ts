@@ -126,10 +126,6 @@ const onStartUp = async () => {
   // This should update the cookie badge count when cookies are changed.
   browser.cookies.onChanged.addListener(CookieEvents.onCookieChanged);
 
-  if (browser.contextMenus) {
-    ContextMenuEvents.menuInit();
-  }
-
   if (browser.contextualIdentities) {
     await ContextualIdentitiesEvents.init();
   }
@@ -250,6 +246,10 @@ browser.runtime.onInstalled.addListener(async (details) => {
     case 'update':
       // Validate Settings to get new settings (if any).
       store.dispatch(validateSettings());
+
+      if (browser.contextMenus) {
+        ContextMenuEvents.menuInit();
+      }
       if (convertVersionToNumber(details.previousVersion) < 350) {
         // Migrate State Setting Name localstorageCleanup to localStorageCleanup
         if (store.getState().settings[SettingID.CLEANUP_LOCALSTORAGE_OLD]) {
@@ -315,6 +315,7 @@ browser.runtime.onInstalled.addListener(async (details) => {
       if (getSetting(store.getState(), SettingID.ENABLE_NEW_POPUP)) {
         await browser.runtime.openOptionsPage();
       }
+      
       break;
     default:
       break;
@@ -345,7 +346,7 @@ const greyCleanup = () => {
       },
       getSetting(store.getState(), SettingID.DEBUG_MODE) as boolean,
     );
-   store.dispatch(
+    store.dispatch(
       cookieCleanup({
         greyCleanup: true,
         ignoreOpenTabs: getSetting(

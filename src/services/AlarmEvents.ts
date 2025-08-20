@@ -29,20 +29,23 @@ export default class AlarmEvents extends StoreUser {
         }),
       );
     }
-    AlarmEvents.alarmFlag = false;
+    await AlarmEvents.setAlarmFlag(false);
   };
 
-  public static createActiveModeAlarm = () => {
+  public static createActiveModeAlarm = async () => {
     const seconds = parseInt(
       getSetting(StoreUser.store.getState(), SettingID.CLEAN_DELAY) as string,
       10,
     );
     const milliseconds = (seconds > 0 ? seconds : 0.5) * 1000;
-    if (AlarmEvents.alarmFlag) {
+
+    const alarmFlag = await AlarmEvents.getAlarmFlag();
+    if (alarmFlag) {
       return;
     }
-    AlarmEvents.alarmFlag = true;
+    await AlarmEvents.setAlarmFlag(true);
 
+    // Create an alarm delay or use setTimeout before cookie cleanup
     if (milliseconds < 60_000) {
       void waitUntil(sleep(milliseconds).then(AlarmEvents.handleAlarmEvent));
     } else {
@@ -51,6 +54,16 @@ export default class AlarmEvents extends StoreUser {
       });
     }
   };
-  // Create an alarm delay or use setTimeout before cookie cleanup
-  private static alarmFlag = false;
+
+  private static setAlarmFlag = async (flag: boolean) =>
+    browser.storage.session.set({
+      alarms: {
+        alarm: flag,
+      },
+    });
+
+  private static getAlarmFlag = () =>
+    browser.storage.session
+      .get('alarms')
+      .then((result) => Boolean(result.alarm));
 }
