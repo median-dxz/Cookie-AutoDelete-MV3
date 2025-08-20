@@ -26,15 +26,8 @@ import { SettingID } from '../../src/typings/Enums';
 
 import { initialState } from '../__mock__/initialState';
 
-const spyBrowserActions = global.generateSpies(
-  BrowserActionService,
-);
-
-class TestContextMenus extends ContextMenuEvents {
-  public static isInit(): boolean {
-    return ContextMenuEvents.isInitialized;
-  }
-}
+const spyBrowserActions = global.generateSpies(BrowserActionService);
+const spyContextMenuEvents = global.generateSpies(ContextMenuEvents);
 
 class TestContextualIdentities extends ContextualIdentitiesEvents {
   public static isInit(): boolean {
@@ -175,12 +168,12 @@ describe('SettingService', () => {
     it('should clear contextMenus if recently disabled', async () => {
       TestStore.changeSetting(SettingID.CONTEXT_MENUS, false);
       await SettingService.onSettingsChange();
-      expect(TestContextMenus.isInit()).toEqual(false);
+      expect(spyContextMenuEvents.menuClear).toHaveBeenCalled();
     });
     it('should init contextMenu items if recently enabled', async () => {
       TestStore.changeSetting(SettingID.CONTEXT_MENUS, true);
       await SettingService.onSettingsChange();
-      expect(TestContextMenus.isInit()).toEqual(true);
+      expect(spyContextMenuEvents.menuInit).toHaveBeenCalled();
     });
   });
 });

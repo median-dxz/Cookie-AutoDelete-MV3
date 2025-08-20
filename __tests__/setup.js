@@ -222,7 +222,7 @@ global.console = {
  */
 function generateSpies(parent) {
   const spyParent = {};
-  for (const k of Object.keys(parent)) {
+  for (const k of Reflect.ownKeys(parent)) {
     try {
       if (!spyParent[k]) spyParent[k] = jest.spyOn(parent, k);
     } catch {
