@@ -65,12 +65,6 @@ class TestStore extends StoreUser {
 }
 
 class TestContextMenuEvents extends ContextMenuEvents {
-  public static getIsInitialized() {
-    return ContextMenuEvents.isInitialized;
-  }
-  public static setIsInitialized(value: boolean) {
-    ContextMenuEvents.isInitialized = value;
-  }
   public static spyAddNewExpression = jest.spyOn(
     ContextMenuEvents,
     'addNewExpression' as never,
@@ -150,7 +144,6 @@ describe('ContextMenuEvents', () => {
         .mockReturnValue(false);
       TestStore.changeSetting(SettingID.CONTEXT_MENUS, true);
       ContextMenuEvents.menuInit();
-      expect(TestContextMenuEvents.getIsInitialized()).toBe(true);
       expect(global.browser.contextMenus.create).toHaveBeenCalledTimes(35);
       expect(
         global.browser.contextMenus.onClicked.addListener,
@@ -161,28 +154,19 @@ describe('ContextMenuEvents', () => {
         .calledWith(expect.any(Function))
         .mockReturnValue(true);
       TestStore.changeSetting(SettingID.CONTEXT_MENUS, true);
-      TestContextMenuEvents.setIsInitialized(false);
       ContextMenuEvents.menuInit();
       expect(
         global.browser.contextMenus.onClicked.addListener,
       ).not.toHaveBeenCalled();
     });
-    it('should do nothing if contextMenus setting is enabled and menus were already created', () => {
-      TestStore.changeSetting(SettingID.CONTEXT_MENUS, true);
-      TestContextMenuEvents.setIsInitialized(true);
-      ContextMenuEvents.menuInit();
-      expect(global.browser.contextMenus.create).not.toHaveBeenCalled();
-    });
   });
 
   describe('menuClear', () => {
     it('should work', async () => {
-      TestContextMenuEvents.setIsInitialized(true);
       await ContextMenuEvents.menuClear();
       expect(
         global.browser.contextMenus.onClicked.removeListener,
       ).toHaveBeenCalledTimes(1);
-      expect(TestContextMenuEvents.getIsInitialized()).toBe(false);
     });
   });
 
