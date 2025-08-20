@@ -13,11 +13,26 @@
 
 import { cookieCleanup } from '../redux/BackgroundActions';
 import { SettingID } from '../typings/Enums';
-import { getSetting, sleep } from './Libs';
+import { getSetting, sleep, waitUntil } from './Libs';
 import StoreUser from './StoreUser';
+import browser from 'webextension-polyfill';
 
 export default class AlarmEvents extends StoreUser {
-  public static createActiveModeAlarm = async (): Promise<void> => {
+  public static ALARMS_ALARM = 'alarms-alarm';
+
+  public static handleAlarmEvent = async () => {
+    if (getSetting(StoreUser.store.getState(), SettingID.ACTIVE_MODE)) {
+      StoreUser.store.dispatch(
+        cookieCleanup({
+          greyCleanup: false,
+          ignoreOpenTabs: false,
+        }),
+      );
+    }
+    AlarmEvents.alarmFlag = false;
+  };
+
+  public static createActiveModeAlarm = () => {
     const seconds = parseInt(
       getSetting(StoreUser.store.getState(), SettingID.CLEAN_DELAY) as string,
       10,
@@ -27,16 +42,14 @@ export default class AlarmEvents extends StoreUser {
       return;
     }
     AlarmEvents.alarmFlag = true;
-    await sleep(milliseconds);
-    if (getSetting(StoreUser.store.getState(), SettingID.ACTIVE_MODE)) {
-      StoreUser.store.dispatch<any>(
-        cookieCleanup({
-          greyCleanup: false,
-          ignoreOpenTabs: false,
-        }),
-      );
+
+    if (milliseconds < 60_000) {
+      void waitUntil(sleep(milliseconds).then(AlarmEvents.handleAlarmEvent));
+    } else {
+      browser.alarms.create(AlarmEvents.ALARMS_ALARM, {
+        delayInMinutes: milliseconds / 60_000,
+      });
     }
-    AlarmEvents.alarmFlag = false;
   };
   // Create an alarm delay or use setTimeout before cookie cleanup
   private static alarmFlag = false;

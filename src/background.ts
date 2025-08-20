@@ -13,6 +13,7 @@
 import browser from 'webextension-polyfill';
 
 import { configureWrapStore } from './redux/Store';
+import AlarmEvents from './services/AlarmEvents';
 import {
   checkIfProtected,
   setGlobalIcon,
@@ -320,6 +321,16 @@ browser.runtime.onInstalled.addListener(async (details) => {
   }
 });
 
+browser.alarms.onAlarm.addListener((alarm) => {
+  switch (alarm.name) {
+    case AlarmEvents.ALARMS_ALARM:
+      AlarmEvents.handleAlarmEvent();
+      break;
+    default:
+      break;
+  }
+});
+
 const awaitStore = async () => {
   while (!store) {
     await sleep(250);
@@ -334,7 +345,7 @@ const greyCleanup = () => {
       },
       getSetting(store.getState(), SettingID.DEBUG_MODE) as boolean,
     );
-    store.dispatch<any>(
+   store.dispatch(
       cookieCleanup({
         greyCleanup: true,
         ignoreOpenTabs: getSetting(

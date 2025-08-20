@@ -98,7 +98,7 @@ describe('TabEvents', () => {
     // Required so the actual cleaning functions being awaited won't run.
     when(spyAlarmEvents.createActiveModeAlarm)
       .calledWith()
-      .mockResolvedValue(undefined as never);
+      .mockReturnValue(undefined as never);
   });
 
   afterEach(() => {

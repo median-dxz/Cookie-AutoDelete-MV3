@@ -250,7 +250,7 @@ export default class TabEvents extends StoreUser {
     delete TabEvents.tabToDomain[tabId];
   }
 
-  public static cleanFromTabEvents = async (): Promise<void> => {
+  public static cleanFromTabEvents = async () => {
     const debug = getSetting(
       StoreUser.store.getState(),
       SettingID.DEBUG_MODE,
@@ -264,7 +264,7 @@ export default class TabEvents extends StoreUser {
           },
           debug,
         );
-        await AlarmEvents.createActiveModeAlarm();
+        AlarmEvents.createActiveModeAlarm();
       } else {
         cadLog(
           {
