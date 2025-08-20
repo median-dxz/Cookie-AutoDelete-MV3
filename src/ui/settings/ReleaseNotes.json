@@ -9,7 +9,9 @@
         "Updated:  Update other dependencies",
         "Fixed:  Check tabId on TabUpdated event",
         "Fixed:  Check menu item availability before changing active mode",
-        "Updated:  Migrate to Manifest V3"
+        "Updated:  Migrate to Manifest V3",
+        "Fixed: Ensure the timeout is now always triggered in the Service Worker environment",
+        "Fixed: Fix duplicate menu creation errors"
       ]
     },
     {
