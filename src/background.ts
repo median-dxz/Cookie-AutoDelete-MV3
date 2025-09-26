@@ -315,7 +315,7 @@ browser.runtime.onInstalled.addListener(async (details) => {
       if (getSetting(store.getState(), SettingID.ENABLE_NEW_POPUP)) {
         await browser.runtime.openOptionsPage();
       }
-      
+
       break;
     default:
       break;
@@ -324,7 +324,7 @@ browser.runtime.onInstalled.addListener(async (details) => {
 
 browser.alarms.onAlarm.addListener((alarm) => {
   switch (alarm.name) {
-    case AlarmEvents.ALARMS_ALARM:
+    case 'activeModeAlarm':
       AlarmEvents.handleAlarmEvent();
       break;
     default:

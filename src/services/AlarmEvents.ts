@@ -18,8 +18,6 @@ import StoreUser from './StoreUser';
 import browser from 'webextension-polyfill';
 
 export default class AlarmEvents extends StoreUser {
-  public static ALARMS_ALARM = 'alarms-alarm';
-
   public static handleAlarmEvent = async () => {
     if (getSetting(StoreUser.store.getState(), SettingID.ACTIVE_MODE)) {
       StoreUser.store.dispatch(
@@ -49,7 +47,7 @@ export default class AlarmEvents extends StoreUser {
     if (milliseconds < 60_000) {
       void waitUntil(sleep(milliseconds).then(AlarmEvents.handleAlarmEvent));
     } else {
-      browser.alarms.create(AlarmEvents.ALARMS_ALARM, {
+      browser.alarms.create('activeModeAlarm', {
         delayInMinutes: milliseconds / 60_000,
       });
     }

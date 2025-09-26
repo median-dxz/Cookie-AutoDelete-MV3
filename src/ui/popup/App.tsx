@@ -271,7 +271,7 @@ class App extends Component<PopupAppComponentProps, InitialState> {
                   borderLeftColor: 'rgb(176, 132, 0)',
                 }}
               >
-                <span className="sr-only">
+                <span className="visually-hidden">
                   {browser.i18n.getMessage('dropdownAdditionalCleaningOptions')}
                 </span>
               </button>

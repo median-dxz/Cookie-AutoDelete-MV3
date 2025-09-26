@@ -177,12 +177,12 @@ function ActivityItem({ log, index }: ActivityItemProps) {
   return (
     <div key={index} className="accordion-item">
       <div
-        className="accordion-header d-flex align-items-center p-2"
+        className="accordion-header d-flex justify-content-between align-items-center p-2"
         id={`heading${index}`}
       >
         {(log.recentlyCleaned > 0 && (
           <IconButton
-            className={'btn-primary'}
+            className={'btn-primary fa-width-auto'}
             iconName={'undo'}
             onClick={() => restoreCookies()}
             title={browser.i18n.getMessage('restoreText')}
@@ -201,7 +201,7 @@ function ActivityItem({ log, index }: ActivityItemProps) {
           })} - ${message} ...`}
         </button>
         <IconButton
-          className={'btn-outline-danger'}
+          className={'btn-outline-danger fa-width-auto'}
           iconName={'trash'}
           onClick={() => dispatch(removeActivity(log))}
           title={browser.i18n.getMessage('removeActivityLogEntryText')}
