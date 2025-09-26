@@ -46,9 +46,6 @@ const apis = {
     fn: ['clear', 'clearAll', 'create', 'get', 'getAll'],
   },
   action: {
-    fn: ['setTitle', 'getTitle'],
-  },
-  browserAction: {
     fn: [
       'getBadgeText',
       'getTitle',
