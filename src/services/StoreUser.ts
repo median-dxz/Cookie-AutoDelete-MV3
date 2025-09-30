@@ -14,6 +14,7 @@
  */
 import type { Store } from '@reduxjs/toolkit';
 import type { configureWrapStore, State } from '../redux/Store';
+import { sleep } from './Libs';
 
 // StoreUser is a static-only class used to hold a shared Redux store across services.
 // To minimize changes and keep the current inheritance/usage pattern, we intentionally disable this rule here.
@@ -21,8 +22,29 @@ import type { configureWrapStore, State } from '../redux/Store';
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export default class StoreUser {
+  public static withStoreReady<
+    P extends unknown[],
+    R,
+    F extends (
+      store: ReturnType<typeof configureWrapStore>,
+    ) => (...args: P) => R,
+  >(createStoreFunction: F): (...args: P) => Promise<R> {
+    let withStore: (...args: P) => R;
+    return async (...args: P) => {
+      if (!withStore) {
+        while (!StoreUser.store) {
+          await sleep(250);
+        }
+        withStore = createStoreFunction(StoreUser.store);
+      }
+
+      return withStore(...args);
+    };
+  }
+
   public static init(store: Store<State>): void {
     StoreUser.store = store;
   }
+
   protected static store: ReturnType<typeof configureWrapStore>;
 }

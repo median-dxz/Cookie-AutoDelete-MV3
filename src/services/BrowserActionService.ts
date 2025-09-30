@@ -176,7 +176,7 @@ export const checkIfProtected = async (
           break;
         case ListType.GREY:
           if (active) {
-            setIconColor(
+            void setIconColor(
               aTab,
               state.settings[SettingID.KEEP_DEFAULT_ICON].value as boolean,
               'yellow',
@@ -187,7 +187,7 @@ export const checkIfProtected = async (
           break;
         default:
           if (active) {
-            setIconColor(
+            void setIconColor(
               aTab,
               state.settings[SettingID.KEEP_DEFAULT_ICON].value as boolean,
               'red',
@@ -200,19 +200,19 @@ export const checkIfProtected = async (
     } else {
       if (cookieLength !== undefined && cookieLength === 0) {
         if (active) {
-          setIconColor(aTab);
+          void setIconColor(aTab);
         } else {
-          setBadgeColor(aTab);
+          void setBadgeColor(aTab);
         }
       } else {
         if (active) {
-          setIconColor(
+          void setIconColor(
             aTab,
             state.settings[SettingID.KEEP_DEFAULT_ICON].value as boolean,
             'red',
           );
         } else {
-          setBadgeColor(aTab, 'red');
+          void setBadgeColor(aTab, 'red');
         }
       }
     }

@@ -24,7 +24,6 @@ import CookieEvents from './services/CookieEvents';
 import {
   cadLog,
   convertVersionToNumber,
-  eventListenerActions,
   extractMainDomain,
   getSetting,
   sleep,
@@ -35,7 +34,6 @@ import StoreUser from './services/StoreUser';
 import TabEvents from './services/TabEvents';
 import {
   BrowserName,
-  EventListenerAction,
   ListType,
   SettingID,
   SiteDataType,
@@ -52,22 +50,20 @@ import { addExpression, updateExpression } from './redux/ListsSlice';
 import { updateSetting } from './redux/SettingsSlice';
 import { browserDetect } from './utils/BrowserDetect';
 
-let store: ReturnType<typeof configureWrapStore>;
+(async () => {
+  // Delay saving to disk to queue up actions
+  let delaySave = false;
+  const saveToStorage = async () => {
+    if (!delaySave) {
+      delaySave = true;
+      await waitUntil(sleep(1000));
+      delaySave = false;
+      return browser.storage.local.set({
+        state: JSON.stringify(store.getState()),
+      });
+    }
+  };
 
-// Delay saving to disk to queue up actions
-let delaySave = false;
-const saveToStorage = async () => {
-  if (!delaySave) {
-    delaySave = true;
-    await waitUntil(sleep(1000));
-    delaySave = false;
-    return browser.storage.local.set({
-      state: JSON.stringify(store.getState()),
-    });
-  }
-};
-
-const onStartUp = async () => {
   const mf = browser.runtime.getManifest();
   browser.action.setTitle({
     title: `${mf.name} ${mf.version} [STARTING UP...] (0)`,
@@ -83,7 +79,7 @@ const onStartUp = async () => {
   } catch (err) {
     stateFromStorage = {};
   }
-  store = configureWrapStore(stateFromStorage);
+  const store = configureWrapStore(stateFromStorage);
 
   store.dispatch(handleStartUp());
   // Store the FF version in cache
@@ -111,31 +107,88 @@ const onStartUp = async () => {
 
   store.dispatch(validateSettings());
 
+  if (browser.contextualIdentities) {
+    // Populate cache with mapped Container ID to Name
+    await ContextualIdentitiesEvents.cacheCookieStoreIdNames();
+  }
+
   await setGlobalIcon(
     getSetting(store.getState(), SettingID.ACTIVE_MODE) as boolean,
   );
 
-  await checkIfProtected(store.getState());
+  checkIfProtected(store.getState());
 
-  browser.tabs.onUpdated.addListener(TabEvents.onDomainChange);
-  browser.tabs.onUpdated.addListener(TabEvents.onTabDiscarded);
-  browser.tabs.onUpdated.addListener(TabEvents.onTabUpdate);
-  browser.tabs.onRemoved.addListener(TabEvents.onDomainChangeRemove);
-  browser.tabs.onRemoved.addListener(TabEvents.cleanFromTabEvents);
-
-  // This should update the cookie badge count when cookies are changed.
-  browser.cookies.onChanged.addListener(CookieEvents.onCookieChanged);
-
-  if (browser.contextualIdentities) {
-    await ContextualIdentitiesEvents.init();
-  }
   browser.action.setTitle({
     title: `${mf.name} ${mf.version} [READY] (0)`,
   });
-};
+
+  cadLog(
+    {
+      msg: `background.onStartUp has been executed`,
+      type: 'info',
+    },
+    getSetting(store.getState(), SettingID.DEBUG_MODE) as boolean,
+  );
+})();
+
+browser.runtime.onStartup.addListener(
+  StoreUser.withStoreReady((store) => async () => {
+    const greyCleanup = () => {
+      if (getSetting(store.getState(), SettingID.ACTIVE_MODE)) {
+        cadLog(
+          {
+            msg: `background.greyCleanup:  dispatching browser restart greyCleanup.`,
+          },
+          getSetting(store.getState(), SettingID.DEBUG_MODE) as boolean,
+        );
+        store.dispatch(
+          cookieCleanup({
+            greyCleanup: true,
+            ignoreOpenTabs: getSetting(
+              store.getState(),
+              SettingID.CLEAN_OPEN_TABS_STARTUP,
+            ) as boolean,
+          }),
+        );
+      }
+    };
+
+    if (getSetting(store.getState(), SettingID.ACTIVE_MODE) === true) {
+      if (getSetting(store.getState(), SettingID.ENABLE_GREYLIST) === true) {
+        let isFFSessionRestore = false;
+        const startupTabs = await browser.tabs.query({ windowType: 'normal' });
+        startupTabs.forEach((tab) => {
+          if (tab.url === 'about:sessionrestore') isFFSessionRestore = true;
+        });
+        if (!isFFSessionRestore) {
+          greyCleanup();
+        } else {
+          cadLog(
+            {
+              msg: 'Found a tab with [ about:sessionrestore ] in Firefox. Skipping Grey startup cleanup this time.',
+              type: 'info',
+            },
+            getSetting(store.getState(), SettingID.DEBUG_MODE) === true,
+          );
+        }
+      } else {
+        cadLog(
+          {
+            msg: 'GreyList Cleanup setting is disabled.  Not cleaning cookies on startup.',
+            type: 'info',
+          },
+          getSetting(store.getState(), SettingID.DEBUG_MODE) === true,
+        );
+      }
+    }
+
+    await checkIfProtected(store.getState());
+  }),
+);
 
 // Keeps a memory of all runtime ports for popups.  Should only be one but just in case.
 const cookiePopupPorts: browser.Runtime.Port[] = [];
+const cookiePopupHeartbeat: number[] = [];
 
 async function onCookiePopupUpdates(changeInfo: {
   removed: boolean;
@@ -144,8 +197,7 @@ async function onCookiePopupUpdates(changeInfo: {
 }) {
   const cDomain = extractMainDomain(changeInfo.cookie.domain);
   cookiePopupPorts.forEach((p) => {
-    if (!p.name) return;
-    if (!p.name.startsWith('popupCAD_')) return;
+    if (!p.name?.startsWith('popupCAD_')) return;
     const pn = p.name.slice(9).split(',');
     if (pn[0].endsWith(changeInfo.cookie.domain) || pn[0].endsWith(cDomain)) {
       p.postMessage({ cookieUpdated: true });
@@ -154,12 +206,8 @@ async function onCookiePopupUpdates(changeInfo: {
 }
 
 function handleConnect(p: browser.Runtime.Port) {
-  if (!p.name || !p.name.startsWith('popupCAD_')) return;
-  eventListenerActions(
-    browser.cookies.onChanged,
-    onCookiePopupUpdates,
-    EventListenerAction.ADD,
-  );
+  if (!p.name?.startsWith('popupCAD_')) return;
+
   p.onMessage.addListener((m) => {
     cadLog(
       {
@@ -170,190 +218,177 @@ function handleConnect(p: browser.Runtime.Port) {
       true,
     );
   });
+
   p.onDisconnect.addListener((dp: browser.Runtime.Port) => {
-    if (cookiePopupPorts.length - 1 === 0) {
-      eventListenerActions(
-        browser.cookies.onChanged,
-        onCookiePopupUpdates,
-        EventListenerAction.REMOVE,
-      );
-    }
     if (!dp.name) return;
     const i: number = cookiePopupPorts.findIndex((pp: browser.Runtime.Port) => {
       if (!pp.name) return false;
       return pp.name === dp.name;
     });
     if (i !== -1) {
+      clearInterval(cookiePopupHeartbeat[i]);
+
       cookiePopupPorts.splice(i, 1);
+      cookiePopupHeartbeat.splice(i, 1);
+    }
+
+    if (cookiePopupPorts.length === 0) {
+      browser.cookies.onChanged.removeListener(onCookiePopupUpdates);
     }
   });
+
   p.postMessage({ cookieUpdated: true });
+
+  // Keep sending a ping every 10 seconds to keep the port alive.
+  const timer = setInterval(() => {
+    p.postMessage({
+      status: 'ping',
+    });
+  }, 10000);
+
   cookiePopupPorts.push(p);
+  // For testing purposes
+  cookiePopupHeartbeat.push(timer as unknown as number);
 }
 
 browser.runtime.onConnect.addListener(handleConnect);
 
-onStartUp().then(() => {
-  cadLog(
-    {
-      msg: `background.onStartUp has been executed`,
-      type: 'info',
-    },
-    getSetting(store.getState(), SettingID.DEBUG_MODE) as boolean,
-  );
-});
-
-browser.runtime.onStartup.addListener(async () => {
-  await awaitStore();
-  if (getSetting(store.getState(), SettingID.ACTIVE_MODE) === true) {
-    if (getSetting(store.getState(), SettingID.ENABLE_GREYLIST) === true) {
-      let isFFSessionRestore = false;
-      const startupTabs = await browser.tabs.query({ windowType: 'normal' });
-      startupTabs.forEach((tab) => {
-        if (tab.url === 'about:sessionrestore') isFFSessionRestore = true;
-      });
-      if (!isFFSessionRestore) {
-        greyCleanup();
-      } else {
-        cadLog(
-          {
-            msg: 'Found a tab with [ about:sessionrestore ] in Firefox. Skipping Grey startup cleanup this time.',
-            type: 'info',
-          },
-          getSetting(store.getState(), SettingID.DEBUG_MODE) === true,
-        );
-      }
-    } else {
-      cadLog(
-        {
-          msg: 'GreyList Cleanup setting is disabled.  Not cleaning cookies on startup.',
-          type: 'info',
-        },
-        getSetting(store.getState(), SettingID.DEBUG_MODE) === true,
-      );
-    }
-  }
-  await checkIfProtected(store.getState());
-});
-
-browser.runtime.onInstalled.addListener(async (details) => {
-  await awaitStore();
-  await checkIfProtected(store.getState());
-  switch (details.reason) {
-    case 'install':
-      await browser.runtime.openOptionsPage();
-      break;
-    case 'update':
-      // Validate Settings to get new settings (if any).
-      store.dispatch(validateSettings());
-
-      if (browser.contextMenus) {
-        ContextMenuEvents.menuInit();
-      }
-      if (convertVersionToNumber(details.previousVersion) < 350) {
-        // Migrate State Setting Name localstorageCleanup to localStorageCleanup
-        if (store.getState().settings[SettingID.CLEANUP_LOCALSTORAGE_OLD]) {
-          store.dispatch(
-            updateSetting({
-              name: SettingID.CLEANUP_LOCALSTORAGE,
-              value: store.getState().settings[
-                SettingID.CLEANUP_LOCALSTORAGE_OLD
-              ].value as boolean,
-            }),
-          );
+// Register Menus
+browser.runtime.onInstalled.addListener(
+  StoreUser.withStoreReady(() => async (details) => {
+    switch (details.reason) {
+      case 'install':
+      case 'update':
+        if (browser.contextMenus) {
+          ContextMenuEvents.menuInit();
         }
-        // Migrate Expression Option 'cleanLocalStorage' to cleanSiteData: [ LocalStorage ]
-        Object.values(store.getState().lists).forEach((list) => {
-          list.forEach((exp) => {
-            // Only migrate if cleanSiteData array is undefined/empty.
-            if (exp.cleanLocalStorage && !exp.cleanSiteData) {
-              store.dispatch(
-                updateExpression({
-                  ...exp,
-                  cleanSiteData: [SiteDataType.LOCALSTORAGE],
-                }),
-              );
-            }
-          });
-        });
-        // Migrate Settings [uncheck 'Keep LocalStorage' on New [GREY/WHITE] Expressions]
-        // Only does this if either was checked.
-        for (const lt of [ListType.GREY, ListType.WHITE]) {
-          if (
-            getSetting(
-              store.getState(),
-              `${lt.toLowerCase()}CleanLocalstorage` as SettingID,
-            )
-          ) {
-            const containers = new Set<string>(
-              Object.keys(store.getState().lists),
+        break;
+      default:
+        break;
+    }
+  }),
+);
+
+// Update Settings
+browser.runtime.onInstalled.addListener(
+  StoreUser.withStoreReady((store) => async (details) => {
+    await checkIfProtected(store.getState());
+    switch (details.reason) {
+      case 'install':
+        await browser.runtime.openOptionsPage();
+        break;
+      case 'update':
+        // Validate Settings to get new settings (if any).
+        store.dispatch(validateSettings());
+
+        if (convertVersionToNumber(details.previousVersion) < 350) {
+          // Migrate State Setting Name localstorageCleanup to localStorageCleanup
+          if (store.getState().settings[SettingID.CLEANUP_LOCALSTORAGE_OLD]) {
+            store.dispatch(
+              updateSetting({
+                name: SettingID.CLEANUP_LOCALSTORAGE,
+                value: store.getState().settings[
+                  SettingID.CLEANUP_LOCALSTORAGE_OLD
+                ].value as boolean,
+              }),
             );
-            containers.add('default');
-            if (getSetting(store.getState(), SettingID.CONTEXTUAL_IDENTITIES)) {
-              const contextualIdentitiesObjects =
-                await browser.contextualIdentities.query({});
-              contextualIdentitiesObjects.forEach((c) =>
-                containers.add(c.cookieStoreId),
-              );
-            }
-            containers.forEach((list) => {
-              store.dispatch(
-                addExpression({
-                  expression: `_Default:${lt}`,
-                  cleanSiteData: [SiteDataType.LOCALSTORAGE],
-                  listType: lt,
-                  storeId: list,
-                }),
-              );
+          }
+          // Migrate Expression Option 'cleanLocalStorage' to cleanSiteData: [ LocalStorage ]
+          Object.values(store.getState().lists).forEach((list) => {
+            list.forEach((exp) => {
+              // Only migrate if cleanSiteData array is undefined/empty.
+              if (exp.cleanLocalStorage && !exp.cleanSiteData) {
+                store.dispatch(
+                  updateExpression({
+                    ...exp,
+                    cleanSiteData: [SiteDataType.LOCALSTORAGE],
+                  }),
+                );
+              }
             });
+          });
+          // Migrate Settings [uncheck 'Keep LocalStorage' on New [GREY/WHITE] Expressions]
+          // Only does this if either was checked.
+          for (const lt of [ListType.GREY, ListType.WHITE]) {
+            if (
+              getSetting(
+                store.getState(),
+                `${lt.toLowerCase()}CleanLocalstorage` as SettingID,
+              )
+            ) {
+              const containers = new Set<string>(
+                Object.keys(store.getState().lists),
+              );
+              containers.add('default');
+              if (
+                getSetting(store.getState(), SettingID.CONTEXTUAL_IDENTITIES)
+              ) {
+                const contextualIdentitiesObjects =
+                  await browser.contextualIdentities.query({});
+                contextualIdentitiesObjects.forEach((c) =>
+                  containers.add(c.cookieStoreId),
+                );
+              }
+              containers.forEach((list) => {
+                store.dispatch(
+                  addExpression({
+                    expression: `_Default:${lt}`,
+                    cleanSiteData: [SiteDataType.LOCALSTORAGE],
+                    listType: lt,
+                    storeId: list,
+                  }),
+                );
+              });
+            }
           }
         }
-      }
-      if (convertVersionToNumber(details.previousVersion) < 300) {
-        store.dispatch(resetCookieDeletedCounter());
-      }
-      if (getSetting(store.getState(), SettingID.ENABLE_NEW_POPUP)) {
-        await browser.runtime.openOptionsPage();
-      }
+        if (convertVersionToNumber(details.previousVersion) < 300) {
+          store.dispatch(resetCookieDeletedCounter());
+        }
+        if (getSetting(store.getState(), SettingID.ENABLE_NEW_POPUP)) {
+          await browser.runtime.openOptionsPage();
+        }
 
-      break;
-    default:
-      break;
-  }
-});
+        break;
+      default:
+        break;
+    }
+  }),
+);
 
-browser.alarms.onAlarm.addListener((alarm) => {
-  switch (alarm.name) {
-    case 'activeModeAlarm':
-      AlarmEvents.handleAlarmEvent();
-      break;
-    default:
-      break;
-  }
-});
+browser.alarms.onAlarm.addListener(
+  StoreUser.withStoreReady(() => async (alarm) => {
+    switch (alarm.name) {
+      case 'activeModeAlarm':
+        AlarmEvents.handleAlarmEvent();
+        break;
+      default:
+        break;
+    }
+  }),
+);
 
-const awaitStore = async () => {
-  while (!store) {
-    await sleep(250);
-  }
-};
+browser.cookies.onChanged.addListener(onCookiePopupUpdates);
 
-const greyCleanup = () => {
-  if (getSetting(store.getState(), SettingID.ACTIVE_MODE)) {
-    cadLog(
-      {
-        msg: `background.greyCleanup:  dispatching browser restart greyCleanup.`,
-      },
-      getSetting(store.getState(), SettingID.DEBUG_MODE) as boolean,
-    );
-    store.dispatch(
-      cookieCleanup({
-        greyCleanup: true,
-        ignoreOpenTabs: getSetting(
-          store.getState(),
-          SettingID.CLEAN_OPEN_TABS_STARTUP,
-        ) as boolean,
-      }),
-    );
-  }
-};
+browser.tabs.onUpdated.addListener(
+  StoreUser.withStoreReady(() => TabEvents.onDomainChange),
+);
+browser.tabs.onUpdated.addListener(
+  StoreUser.withStoreReady(() => TabEvents.onTabDiscarded),
+);
+browser.tabs.onUpdated.addListener(
+  StoreUser.withStoreReady(() => TabEvents.onTabUpdate),
+);
+browser.tabs.onRemoved.addListener(
+  StoreUser.withStoreReady(() => TabEvents.onDomainChangeRemove),
+);
+browser.tabs.onRemoved.addListener(
+  StoreUser.withStoreReady(() => TabEvents.cleanFromTabEvents),
+);
+
+// This should update the cookie badge count when cookies are changed.
+browser.cookies.onChanged.addListener(CookieEvents.onCookieChanged);
+
+if (browser.contextualIdentities) {
+  ContextualIdentitiesEvents.init();
+}

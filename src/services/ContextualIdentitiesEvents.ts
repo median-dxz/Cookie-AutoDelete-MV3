@@ -20,7 +20,7 @@ import { addCache } from '../redux/CacheSlice';
 import { removeList } from '../redux/ListsSlice';
 
 export default class ContextualIdentitiesEvents extends StoreUser {
-  public static async init(): Promise<void> {
+  public static init(): void {
     if (
       !browser.contextualIdentities ||
       (!getSetting(
@@ -31,8 +31,6 @@ export default class ContextualIdentitiesEvents extends StoreUser {
     )
       return;
     ContextualIdentitiesEvents.isInitialized = true;
-    // Populate cache with mapped Container ID to Name
-    await ContextualIdentitiesEvents.cacheCookieStoreIdNames();
     eventListenerActions(
       browser.contextualIdentities.onCreated,
       ContextualIdentitiesEvents.onContainerCreated,

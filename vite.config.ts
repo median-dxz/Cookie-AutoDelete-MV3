@@ -59,7 +59,6 @@ export default defineConfig(() => {
         scss: {
           silenceDeprecations: [
             'import',
-            'mixed-decls',
             'color-functions',
             'global-builtin',
           ],
