@@ -40,7 +40,7 @@ const SelectInput: React.FunctionComponent<OwnProps> = ({
       <select
         name={name}
         id={name}
-        className={'selectOptions form-select'}
+        className={'selectOptions form-select w-auto'}
         onChange={(e) => {
           const newValue = options.includes(e.target.value as string)
             ? e.target.value
@@ -50,7 +50,6 @@ const SelectInput: React.FunctionComponent<OwnProps> = ({
             value: newValue,
           });
         }}
-        style={{ minWidth: '5em', width: 'auto' }}
         value={value as string}
       >
         {options.map((opt) => (
