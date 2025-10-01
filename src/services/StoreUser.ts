@@ -28,7 +28,7 @@ export default class StoreUser {
     F extends (
       store: ReturnType<typeof configureWrapStore>,
     ) => (...args: P) => R,
-  >(createStoreFunction: F): (...args: P) => Promise<R> {
+  >(createStoreFunction: F) {
     let withStore: (...args: P) => R;
     return async (...args: P) => {
       if (!withStore) {
