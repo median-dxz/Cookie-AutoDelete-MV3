@@ -221,10 +221,12 @@ function handleConnect(p: browser.Runtime.Port) {
 
   p.onDisconnect.addListener((dp: browser.Runtime.Port) => {
     if (!dp.name) return;
+
     const i: number = cookiePopupPorts.findIndex((pp: browser.Runtime.Port) => {
       if (!pp.name) return false;
       return pp.name === dp.name;
     });
+
     if (i !== -1) {
       clearInterval(cookiePopupHeartbeat[i]);
 
