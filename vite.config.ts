@@ -14,7 +14,7 @@ type FixEmailFields<T> = {
 
 type Browser = 'firefox' | 'chrome';
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
   const browser: Browser = (process.env.BROWSER as Browser) ?? 'chrome';
 
   const manifest = {
@@ -22,7 +22,7 @@ export default defineConfig(() => {
     version: packageJson.version,
   } as unknown as FixEmailFields<typeof manifestJson>;
 
-  if (browser === 'chrome') {
+  if (browser === 'chrome' && mode === 'development') {
     manifest.permissions.splice(
       manifest.permissions.indexOf('contextualIdentities'),
       1,
