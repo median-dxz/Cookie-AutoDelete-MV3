@@ -389,7 +389,9 @@ browser.tabs.onRemoved.addListener(
 );
 
 // This should update the cookie badge count when cookies are changed.
-browser.cookies.onChanged.addListener(CookieEvents.onCookieChanged);
+browser.cookies.onChanged.addListener(
+  StoreUser.withStoreReady(() => CookieEvents.onCookieChanged),
+);
 
 if (browser.contextualIdentities) {
   ContextualIdentitiesEvents.init();

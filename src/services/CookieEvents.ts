@@ -23,9 +23,7 @@ export type CookieChangeInfo = {
 };
 
 export default class CookieEvents extends StoreUser {
-  public static async onCookieChanged(
-    changeInfo: CookieChangeInfo,
-  ): Promise<void> {
+  public static async onCookieChanged(changeInfo: CookieChangeInfo) {
     // Truncate cookie value (purely for debug)
     changeInfo.cookie.value = '***';
     // Get the current active tab(s)
