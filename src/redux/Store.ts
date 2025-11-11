@@ -17,7 +17,7 @@ import {
   type ActionCreator,
   type PayloadAction,
   type ThunkAction,
-  type UnknownAction
+  type UnknownAction,
 } from '@reduxjs/toolkit';
 import logger from 'redux-logger';
 import { alias, createWrapStore } from 'webext-redux';

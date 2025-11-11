@@ -56,11 +56,16 @@ import { browserDetect } from './utils/BrowserDetect';
   const saveToStorage = async () => {
     if (!delaySave) {
       delaySave = true;
-      await waitUntil(sleep(1000));
+
+      await sleep(1000);
+
+      await waitUntil(
+        browser.storage.local.set({
+          state: JSON.stringify(store.getState()),
+        }),
+      );
+
       delaySave = false;
-      return browser.storage.local.set({
-        state: JSON.stringify(store.getState()),
-      });
     }
   };
 
@@ -81,7 +86,6 @@ import { browserDetect } from './utils/BrowserDetect';
   }
   const store = configureWrapStore(stateFromStorage);
 
-  store.dispatch(handleStartUp());
   // Store the FF version in cache
   if (browserDetect() === BrowserName.Firefox) {
     const browserInfo = await browser.runtime.getBrowserInfo();
@@ -124,7 +128,7 @@ import { browserDetect } from './utils/BrowserDetect';
 
   cadLog(
     {
-      msg: `background.onStartUp has been executed`,
+      msg: `background.onInit has been executed`,
       type: 'info',
     },
     getSetting(store.getState(), SettingID.DEBUG_MODE) as boolean,
@@ -133,6 +137,8 @@ import { browserDetect } from './utils/BrowserDetect';
 
 browser.runtime.onStartup.addListener(
   StoreUser.withStoreReady((store) => async () => {
+    store.dispatch(handleStartUp());
+
     const greyCleanup = () => {
       if (getSetting(store.getState(), SettingID.ACTIVE_MODE)) {
         cadLog(
