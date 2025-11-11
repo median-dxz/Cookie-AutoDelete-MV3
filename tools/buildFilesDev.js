@@ -12,18 +12,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-const fs = require('fs');
-const path = require('path');
-const archiver = require('archiver');
 
-const BUILDS = 'builds';
-const EXT = 'extension';
+import fs from 'fs';
+import path from 'path';
+import archiver from 'archiver';
+import * as DIR from './directories.js';
+
+const { BUILDS, DIST } = DIR;
+
 const EXTNAME = 'Cookie-AutoDelete_';
 const MANIFEST = 'manifest.json';
 
 const ROOTDIR = process.cwd();
 const BUILDDIR = path.join(ROOTDIR, BUILDS);
-const EXTDIR = path.join(ROOTDIR, EXT);
+const DISTDIR = path.join(ROOTDIR, DIST);
 
 console.log(
   '\n\nUsing NodeJS Version %s on %s %s',
@@ -128,7 +130,7 @@ function archiverZip(cb, filename) {
   archive.pipe(fileStream);
 
   // Append files from Extension Folder.
-  archive.directory(EXTDIR, false);
+  archive.directory(DISTDIR, false);
 
   archive.finalize();
 }
@@ -168,7 +170,7 @@ function chromeBuild(cb) {
   }
   // Copy manifest into memory to preserve it.
   console.log('\nGetting a copy of %s to memory...', MANIFEST);
-  const mforig = fs.readFileSync(path.join(EXTDIR, MANIFEST));
+  const mforig = fs.readFileSync(path.join(DISTDIR, MANIFEST));
   console.log('>> Done!');
   console.log('Prepping %s for Google Chrome...', MANIFEST);
 
@@ -180,20 +182,20 @@ function chromeBuild(cb) {
       i === -1
         ? 'Not Found!'
         : mf.permissions.splice(i, 1).length === 1
-        ? 'Done!'
-        : 'An Easter Egg Error!',
+          ? 'Done!'
+          : 'An Easter Egg Error!',
     );
   }
 
-  const mf = require(path.join(EXTDIR, MANIFEST));
+  const mf = JSON.parse(fs.readFileSync(path.join(DISTDIR, MANIFEST), 'utf-8'));
   delMFPerm(mf, 'contextualIdentities');
   console.log(
-    '> Removing [applications] section ... %s',
-    delete mf.applications ? 'Done!' : 'Failed',
+    '> Removing [browser_specific_settings] section ... %s',
+    delete mf.browser_specific_settings ? 'Done!' : 'Failed',
   );
 
   console.log('Overwriting %s for Google Chrome ...', MANIFEST);
-  fs.writeFileSync(path.join(EXTDIR, MANIFEST), JSON.stringify(mf, null, 2));
+  fs.writeFileSync(path.join(DISTDIR, MANIFEST), JSON.stringify(mf, null, 2));
   console.log('>> Done!');
 
   console.log('\nBuilding unsigned extension for Google Chrome...');
@@ -202,7 +204,7 @@ function chromeBuild(cb) {
     if (r === 0) {
       // continue
       // Revert modifications
-      fs.writeFileSync(path.join(EXTDIR, MANIFEST), mforig);
+      fs.writeFileSync(path.join(DISTDIR, MANIFEST), mforig);
       console.log('%s has been reverted back to original contents!', MANIFEST);
 
       // End of Google Chrome build.
@@ -249,22 +251,22 @@ function preCheck(cb) {
   console.log('Creating %s if it does not exists...', BUILDDIR);
   fs.mkdirSync(BUILDDIR, { recursive: true });
 
-  console.log('Checking if %s folder exists...', EXTDIR);
-  const extRes = fs.statSync(EXTDIR);
+  console.log('Checking if %s folder exists...', DISTDIR);
+  const extRes = fs.statSync(DISTDIR);
   if (!extRes) {
     console.error(
       '%s does NOT exist - Cannot build WebExtension.  Terminating.',
-      EXTDIR,
+      DISTDIR,
     );
     cb(1);
   } else if (!extRes.isDirectory()) {
     console.error(
       '%s is found but is NOT a directory.  Cannot build WebExtension.  Terminating.',
-      EXTDIR,
+      DISTDIR,
     );
     cb(2);
   } else {
-    console.log('Yup.  Directory %s Exists!', EXTDIR);
+    console.log('Yup.  Directory %s Exists!', DISTDIR);
     cb(0);
   }
 }

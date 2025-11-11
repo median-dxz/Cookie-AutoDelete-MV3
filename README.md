@@ -26,23 +26,19 @@ Control your cookies! This extension is inspired by [Self-Destructing Cookies](h
 2. Enable "Automatic Cleaning" in settings or "Auto-Clean" in popup
 3. Watch those unused cookies disappear :)
 
+## About This Fork
+
+The main purpose of this fork is to **help migrate the original repository to Manifest V3 (Google Manifest v3) and adopt a more modern JavaScript build toolchain**. As the creator of this fork, I have limited time available, so I won't be spending much time on this fork, nor will I be uploading its build to the Chrome Web Store. Therefore, until the primary goal is achieved, this project will not accept requests for new features.
+
+**Please note that you need to load the build from Release into your browser via developer mode.**
+
+Once this main objective is accomplished, I will open a PR and follow up on its progress, then decide on the next steps for this fork repository.
+
 ## Installation
-
-### via Official Channels
-
-- [Google Chrome][link-cws]
-
-  - [![Chrome Lastest](https://img.shields.io/chrome-web-store/v/fhcgjolkccmbidfldomjliifgaodjagh)][link-cws] [![Chrome Users](https://img.shields.io/chrome-web-store/users/fhcgjolkccmbidfldomjliifgaodjagh)][link-cws]
-
-- [Mozilla Firefox][link-amo]
-  - [![Firefox Latest](https://img.shields.io/amo/v/cookie-autodelete)][link-amo] [![Firefox Users](https://img.shields.io/amo/users/cookie-autodelete)][link-amo]
-- [Microsoft Edge Chromium][link-edge]
-  - Should have the exact same features as Google Chrome
-  - [![](https://img.shields.io/badge/dynamic/json?label=edge%20chromium%20add-on&prefix=v&query=%24.version&url=https%3A%2F%2Fmicrosoftedge.microsoft.com%2Faddons%2Fgetproductdetailsbycrxid%2Fdjkjpnciiommncecmdefpdllknjdmmmo)][link-edge]
 
 ### via Self Installation
 
-- [Github Releases](https://github.com/Cookie-AutoDelete/Cookie-AutoDelete/releases)
+- [Github Releases](https://github.com/median-dxz/Cookie-AutoDelete-MV3/releases)
 
 > Please keep in mind that at this time only Mozilla Firefox and Google Chrome (as well as its development branches e.g. Developer Edition, Canary) will be supported.  
 > Microsoft Edge Chromium will be considered partially official as it is using the same code as Google Chrome for now.
@@ -52,7 +48,7 @@ Control your cookies! This extension is inspired by [Self-Destructing Cookies](h
 
 ### Donations
 
-[Donations are done through Liberapay/PayPal](https://liberapay.com/CAD_Developers/). If this webextension has helped you in any way, we would appreciate a small donation to assist in our efforts to make this even better. Note that although Liberapay has recurring donation model, you can opt to 'manually' donate a one time amount as well.
+Please check the original repository for instructions on how to donate to the original authors.
 
 ### Internationalization (i18n)
 
