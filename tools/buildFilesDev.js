@@ -140,8 +140,36 @@ function firefoxBuild(cb) {
     console.error('callback is not a function!');
     return null;
   }
-  console.log('\nBuilding unsigned extension for Mozilla Firefox...');
 
+  // Copy manifest into memory to preserve it.
+  console.log('\nGetting a copy of %s to memory...', MANIFEST);
+  const mforig = fs.readFileSync(path.join(DISTDIR, MANIFEST));
+  console.log('>> Done!');
+
+  const mf = JSON.parse(fs.readFileSync(path.join(DISTDIR, MANIFEST), 'utf-8'));
+
+  const changeBackgroundScript = (mf) => {
+    let f = true;
+    const script = mf?.background?.service_worker;
+    if (script) {
+      f = delete mf.background.service_worker;
+      mf.background.scripts = [script];
+    } else {
+      f = false;
+    }
+    return f;
+  };
+
+  console.log(
+    '> Change background.service_worker to background.scripts ... %s',
+    changeBackgroundScript(mf) ? 'Done!' : 'Skipped (Not Found)',
+  );
+
+  console.log('Overwriting %s for Firefox ...', MANIFEST);
+  fs.writeFileSync(path.join(DISTDIR, MANIFEST), JSON.stringify(mf, null, 2));
+  console.log('>> Done!');
+
+  console.log('\nBuilding unsigned extension for Mozilla Firefox...', MANIFEST);
   archiverZip(function (r) {
     if (r === 0) {
       // Copy ZIP to XPI
@@ -151,6 +179,10 @@ function firefoxBuild(cb) {
         path.join(BUILDDIR, FIREFOXFILENAME + '.xpi'),
       );
       console.log('>> Copy Success!');
+
+      fs.writeFileSync(path.join(DISTDIR, MANIFEST), mforig);
+      console.log('%s has been reverted back to original contents!', MANIFEST);
+
       // End of Mozilla Firefox build.
       console.log('Mozilla Firefox Build Complete!');
     } else {
@@ -277,6 +309,6 @@ preCheck((r) => {
     mainBuild();
   } else {
     console.warn('PreCheck Failed! Terminating!');
-    process.exitCode = r;
+    process.exit(r);
   }
 });
