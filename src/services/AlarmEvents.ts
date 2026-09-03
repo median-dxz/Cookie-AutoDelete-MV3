@@ -18,6 +18,9 @@ import StoreUser from './StoreUser';
 import browser from 'webextension-polyfill';
 
 export default class AlarmEvents extends StoreUser {
+  private static shortActiveModePending = false;
+  public static ALARMS_SCHEDULE_CLEANUP = 'activeModeAlarm';
+
   public static handleAlarmEvent = async () => {
     if (getSetting(StoreUser.store.getState(), SettingID.ACTIVE_MODE)) {
       StoreUser.store.dispatch(
@@ -27,41 +30,40 @@ export default class AlarmEvents extends StoreUser {
         }),
       );
     }
-    await AlarmEvents.setAlarmFlag(false);
   };
 
-  public static createActiveModeAlarm = async () => {
+  public static scheduleActiveModeCleanup = async () => {
     const seconds = parseInt(
       getSetting(StoreUser.store.getState(), SettingID.CLEAN_DELAY) as string,
       10,
     );
     const milliseconds = (seconds > 0 ? seconds : 0.5) * 1000;
 
-    const alarmFlag = await AlarmEvents.getAlarmFlag();
-    if (alarmFlag) {
-      return;
-    }
-    await AlarmEvents.setAlarmFlag(true);
-
     // Create an alarm delay or use setTimeout before cookie cleanup
     if (milliseconds < 60_000) {
-      void waitUntil(sleep(milliseconds).then(AlarmEvents.handleAlarmEvent));
-    } else {
-      browser.alarms.create('activeModeAlarm', {
-        delayInMinutes: milliseconds / 60_000,
-      });
+      if (AlarmEvents.shortActiveModePending) {
+        return;
+      }
+      AlarmEvents.shortActiveModePending = true;
+
+      return void waitUntil(
+        sleep(milliseconds)
+          .then(AlarmEvents.handleAlarmEvent)
+          .finally(() => {
+            AlarmEvents.shortActiveModePending = false;
+          }),
+      );
     }
-  };
 
-  private static setAlarmFlag = async (flag: boolean) =>
-    browser.storage.session.set({
-      alarms: {
-        alarm: flag,
-      },
+    const existing = await browser.alarms.get(
+      AlarmEvents.ALARMS_SCHEDULE_CLEANUP,
+    );
+    if (existing) {
+      return;
+    }
+
+    await browser.alarms.create(AlarmEvents.ALARMS_SCHEDULE_CLEANUP, {
+      delayInMinutes: milliseconds / 60_000,
     });
-
-  private static getAlarmFlag = () =>
-    browser.storage.session
-      .get('alarms')
-      .then((result) => Boolean(result.alarm));
+  };
 }

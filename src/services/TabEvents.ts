@@ -251,30 +251,11 @@ export default class TabEvents extends StoreUser {
   }
 
   public static cleanFromTabEvents = async () => {
-    const debug = getSetting(
-      StoreUser.store.getState(),
-      SettingID.DEBUG_MODE,
-    ) as boolean;
-    if (getSetting(StoreUser.store.getState(), SettingID.ACTIVE_MODE)) {
-      const alarm = await browser.alarms.get('activeModeAlarm');
-      if (!alarm || (alarm.name && alarm.name !== 'activeModeAlarm')) {
-        cadLog(
-          {
-            msg: 'TabEvents.cleanFromTabEvents:  No Alarms detected.  Creating alarm for cleaning...',
-          },
-          debug,
-        );
-        AlarmEvents.createActiveModeAlarm();
-      } else {
-        cadLog(
-          {
-            msg: 'TabEvents.cleanFromTabEvents:  An alarm for cleaning was created already.  Cleaning will commence soon.',
-            x: alarm,
-          },
-          debug,
-        );
-      }
+    if (!getSetting(StoreUser.store.getState(), SettingID.ACTIVE_MODE)) {
+      return;
     }
+
+    await AlarmEvents.scheduleActiveModeCleanup();
   };
 
   public static getAllCookieActions = async (

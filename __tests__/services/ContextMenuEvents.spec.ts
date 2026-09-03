@@ -138,23 +138,10 @@ describe('ContextMenuEvents', () => {
       ContextMenuEvents.menuInit();
       expect(global.browser.contextMenus.create).not.toHaveBeenCalled();
     });
-    it('should create its menus contextMenus setting is enabled and none was created beforehand', () => {
-      when(global.browser.contextMenus.onClicked.hasListener)
-        .calledWith(expect.any(Function))
-        .mockReturnValue(false);
+    it('should create its menus when contextMenus setting is enabled', () => {
       TestStore.changeSetting(SettingID.CONTEXT_MENUS, true);
       ContextMenuEvents.menuInit();
       expect(global.browser.contextMenus.create).toHaveBeenCalledTimes(35);
-      expect(
-        global.browser.contextMenus.onClicked.addListener,
-      ).toHaveBeenCalledTimes(1);
-    });
-    it('should not add another listener if one was already added', () => {
-      when(global.browser.contextMenus.onClicked.hasListener)
-        .calledWith(expect.any(Function))
-        .mockReturnValue(true);
-      TestStore.changeSetting(SettingID.CONTEXT_MENUS, true);
-      ContextMenuEvents.menuInit();
       expect(
         global.browser.contextMenus.onClicked.addListener,
       ).not.toHaveBeenCalled();
@@ -164,9 +151,10 @@ describe('ContextMenuEvents', () => {
   describe('menuClear', () => {
     it('should work', async () => {
       await ContextMenuEvents.menuClear();
+      expect(global.browser.contextMenus.removeAll).toHaveBeenCalledTimes(1);
       expect(
         global.browser.contextMenus.onClicked.removeListener,
-      ).toHaveBeenCalledTimes(1);
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -675,6 +663,5 @@ describe('ContextMenuEvents', () => {
       );
       expect(global.browser.runtime.openOptionsPage).toHaveBeenCalledTimes(1);
     });
-
   });
 });

@@ -367,13 +367,17 @@ browser.runtime.onInstalled.addListener(
 browser.alarms.onAlarm.addListener(
   StoreUser.withStoreReady(() => async (alarm) => {
     switch (alarm.name) {
-      case 'activeModeAlarm':
+      case AlarmEvents.ALARMS_SCHEDULE_CLEANUP:
         AlarmEvents.handleAlarmEvent();
         break;
       default:
         break;
     }
   }),
+);
+
+browser.contextMenus.onClicked.addListener(
+  StoreUser.withStoreReady(() => ContextMenuEvents.onContextMenuClicked),
 );
 
 browser.cookies.onChanged.addListener(onCookiePopupUpdates);

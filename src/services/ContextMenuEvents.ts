@@ -12,12 +12,7 @@
  */
 
 import browser from 'webextension-polyfill';
-import {
-  EventListenerAction,
-  ListType,
-  SettingID,
-  SiteDataType,
-} from '../typings/Enums';
+import { ListType, SettingID, SiteDataType } from '../typings/Enums';
 import {
   clearCookiesForThisDomain,
   clearLocalStorageForThisDomain,
@@ -25,7 +20,6 @@ import {
 } from './CleanupService';
 import {
   cadLog,
-  eventListenerActions,
   getHostname,
   getSetting,
   localFileToRegex,
@@ -259,21 +253,10 @@ export default class ContextMenuEvents extends StoreUser {
       id: ContextMenuEvents.MenuID.SETTINGS,
       title: browser.i18n.getMessage('settingsText'),
     });
-
-    eventListenerActions(
-      browser.contextMenus.onClicked,
-      ContextMenuEvents.onContextMenuClicked,
-      EventListenerAction.ADD,
-    );
   }
 
   public static async menuClear(): Promise<void> {
     await browser.contextMenus.removeAll();
-    eventListenerActions(
-      browser.contextMenus.onClicked,
-      ContextMenuEvents.onContextMenuClicked,
-      EventListenerAction.REMOVE,
-    );
     cadLog(
       {
         msg: `ContextMenuEvents.menuClear:  Context Menu has been removed.`,
@@ -338,7 +321,7 @@ export default class ContextMenuEvents extends StoreUser {
 
   public static async onContextMenuClicked(
     info: browser.Menus.OnClickData,
-    tab: browser.Tabs.Tab,
+    tab?: browser.Tabs.Tab,
   ): Promise<void> {
     const debug = getSetting(
       StoreUser.store.getState(),
@@ -362,6 +345,18 @@ export default class ContextMenuEvents extends StoreUser {
         .toString()
         .startsWith(ContextMenuEvents.MenuID.MANUAL_CLEAN_SITEDATA)
     ) {
+      if (!tab) {
+        cadLog(
+          {
+            msg: `ContextMenuEvents.onContextMenuClicked cannot clean site data without a tab.`,
+            type: 'warn',
+            x: { info },
+          },
+          debug,
+        );
+        return;
+      }
+
       const siteData = info.menuItemId
         .toString()
         .slice(ContextMenuEvents.MenuID.MANUAL_CLEAN_SITEDATA.length);
