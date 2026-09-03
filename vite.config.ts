@@ -112,7 +112,7 @@ export default defineConfig(() => {
       },
       strictPort: true,
       port: 5173,
-      hmr: {
+      ws: {
         clientPort: 5173,
       },
     },
