@@ -102,6 +102,8 @@ import { browserDetect } from './utils/BrowserDetect';
   store.dispatch(addCache({ key: 'platformInfo', value: platformInfo }));
   store.dispatch(addCache({ key: 'platformOs', value: platformInfo.os }));
 
+  await TabEvents.restoreTabToDomain();
+
   // This is important to initialize the Store for all classes that extend from this
   StoreUser.init(store);
 
@@ -396,6 +398,9 @@ browser.tabs.onRemoved.addListener(
 );
 browser.tabs.onRemoved.addListener(
   StoreUser.withStoreReady(() => TabEvents.cleanFromTabEvents),
+);
+browser.tabs.onReplaced.addListener(
+  StoreUser.withStoreReady(() => TabEvents.onDomainChangeReplaced),
 );
 
 // This should update the cookie badge count when cookies are changed.

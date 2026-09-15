@@ -157,6 +157,7 @@ const browser = {
     local: storageArea,
     managed: storageArea,
     onChanged: eventListeners,
+    session: storageArea,
     sync: storageArea,
   },
 };

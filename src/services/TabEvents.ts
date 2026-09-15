@@ -37,6 +37,36 @@ import StoreUser from './StoreUser';
 import { selectSettingValues } from '../redux/SettingsSlice';
 
 export default class TabEvents extends StoreUser {
+  private static readonly TAB_TO_DOMAIN_STORAGE_KEY = 'tabToDomain';
+
+  public static restoreTabToDomain = async (): Promise<void> => {
+    const stored = await browser.storage.session.get(
+      TabEvents.TAB_TO_DOMAIN_STORAGE_KEY,
+    );
+    const tabToDomain = stored[TabEvents.TAB_TO_DOMAIN_STORAGE_KEY];
+
+    if (tabToDomain && typeof tabToDomain === 'object') {
+      TabEvents.tabToDomain = tabToDomain as Record<number, string>;
+      return;
+    }
+
+    const tabs = await browser.tabs.query({ windowType: 'normal' });
+    TabEvents.tabToDomain = {};
+    for (const tab of tabs) {
+      if (tab.id !== undefined) {
+        TabEvents.tabToDomain[tab.id] = extractMainDomain(
+          getHostname(tab.url),
+        );
+      }
+    }
+    await TabEvents.saveTabToDomain();
+  };
+
+  private static saveTabToDomain = (): Promise<void> =>
+    browser.storage.session.set({
+      [TabEvents.TAB_TO_DOMAIN_STORAGE_KEY]: TabEvents.tabToDomain,
+    });
+
   public static onTabDiscarded(
     tabId: number,
     changeInfo: browser.Tabs.OnUpdatedChangeInfoType,
@@ -143,11 +173,11 @@ export default class TabEvents extends StoreUser {
     }
   }
 
-  public static onDomainChange(
+  public static async onDomainChange(
     tabId: number,
     changeInfo: browser.Tabs.OnUpdatedChangeInfoType,
     tab: browser.Tabs.Tab,
-  ): void {
+  ): Promise<void> {
     const debug = getSetting(
       StoreUser.store.getState(),
       SettingID.DEBUG_MODE,
@@ -168,6 +198,7 @@ export default class TabEvents extends StoreUser {
           debug,
         );
         TabEvents.tabToDomain[tabId] = mainDomain;
+        await TabEvents.saveTabToDomain();
       } else if (
         TabEvents.tabToDomain[tabId] !== mainDomain &&
         (mainDomain !== '' ||
@@ -178,6 +209,7 @@ export default class TabEvents extends StoreUser {
       ) {
         const oldMainDomain = TabEvents.tabToDomain[tabId];
         TabEvents.tabToDomain[tabId] = mainDomain;
+        await TabEvents.saveTabToDomain();
         if (
           getSetting(StoreUser.store.getState(), SettingID.CLEAN_DOMAIN_CHANGE)
         ) {
@@ -232,13 +264,13 @@ export default class TabEvents extends StoreUser {
     }
   }
 
-  public static onDomainChangeRemove(
+  public static async onDomainChangeRemove(
     tabId: number,
     removeInfo: {
       windowId: number;
       isWindowClosing: boolean;
     },
-  ): void {
+  ): Promise<void> {
     cadLog(
       {
         msg: 'TabEvents.onDomainChangeRemove: Tab was closed.  Removing old tabToDomain info.',
@@ -248,6 +280,21 @@ export default class TabEvents extends StoreUser {
     );
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
     delete TabEvents.tabToDomain[tabId];
+    await TabEvents.saveTabToDomain();
+  }
+
+  public static async onDomainChangeReplaced(
+    addedTabId: number,
+    removedTabId: number,
+  ): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+    delete TabEvents.tabToDomain[removedTabId];
+
+    const tab = await browser.tabs.get(addedTabId);
+    TabEvents.tabToDomain[addedTabId] = extractMainDomain(
+      getHostname(tab.url),
+    );
+    await TabEvents.saveTabToDomain();
   }
 
   public static cleanFromTabEvents = async () => {

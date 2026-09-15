@@ -58,6 +58,9 @@ class TestTabEvents extends TabEvents {
   public static getTabToDomain() {
     return TabEvents.tabToDomain;
   }
+  public static setTabToDomain(tabToDomain: Record<number, string>) {
+    TabEvents.tabToDomain = tabToDomain;
+  }
   public static getOnTabUpdateDelay() {
     return TabEvents.onTabUpdateDelay;
   }
@@ -96,7 +99,7 @@ describe('TabEvents', () => {
     // Otherwise, the matcher added later will overwrite it.
     when(global.browser.cookies.getAll).defaultResolvedValue([]);
     // Required so the actual cleaning functions being awaited won't run.
-    when(spyAlarmEvents.createActiveModeAlarm)
+    when(spyAlarmEvents.scheduleActiveModeCleanup)
       .calledWith()
       .mockReturnValue(undefined as never);
   });
@@ -380,17 +383,35 @@ describe('TabEvents', () => {
   describe('onDomainChange', () => {
     // Do not change any of the test order as each test relies on the previous actions.
 
-    it('should do nothing if tab.status is not complete', () => {
-      TabEvents.onDomainChange(0, sampleChangeInfo, {
+    it('should restore the previous domain after a worker restart', async () => {
+      when(global.browser.storage.session.get)
+        .calledWith('tabToDomain')
+        .mockResolvedValue({ tabToDomain: { 0: 'example.com' } });
+      TestStore.changeSetting(SettingID.CLEAN_DOMAIN_CHANGE, true);
+
+      await TabEvents.restoreTabToDomain();
+      await TabEvents.onDomainChange(0, sampleChangeInfo, {
+        ...sampleTab,
+        status: 'complete',
+        url: 'https://domain.cad',
+      });
+
+      expect(spyTabEvents.cleanFromTabEvents).toHaveBeenCalledTimes(1);
+      expect(TestTabEvents.getTabToDomain()[0]).toBe('domain.cad');
+      TestTabEvents.setTabToDomain({});
+    });
+
+    it('should do nothing if tab.status is not complete', async () => {
+      await TabEvents.onDomainChange(0, sampleChangeInfo, {
         ...sampleTab,
         status: 'loading',
       });
       expect(spyTabEvents.cleanFromTabEvents).not.toHaveBeenCalled();
     });
 
-    it('should set mainDomain on first encounter', () => {
+    it('should set mainDomain on first encounter', async () => {
       expect(Object.keys(TestTabEvents.getTabToDomain()).length).toBe(0);
-      TabEvents.onDomainChange(0, sampleChangeInfo, {
+      await TabEvents.onDomainChange(0, sampleChangeInfo, {
         ...sampleTab,
         status: 'complete',
       });
@@ -398,10 +419,10 @@ describe('TabEvents', () => {
       expect(spyTabEvents.cleanFromTabEvents).not.toHaveBeenCalled();
     });
 
-    it('should truncate favIconUrl if debug=true', () => {
+    it('should truncate favIconUrl if debug=true', async () => {
       TestStore.changeSetting(SettingID.DEBUG_MODE, true);
       expect(Object.keys(TestTabEvents.getTabToDomain()).length).toBe(1);
-      TabEvents.onDomainChange(0, sampleChangeInfo, {
+      await TabEvents.onDomainChange(0, sampleChangeInfo, {
         ...sampleTab,
         status: 'complete',
       });
@@ -410,8 +431,8 @@ describe('TabEvents', () => {
       );
     });
 
-    it('should not do anything if mainDomain has not changed yet', () => {
-      TabEvents.onDomainChange(0, sampleChangeInfo, {
+    it('should not do anything if mainDomain has not changed yet', async () => {
+      await TabEvents.onDomainChange(0, sampleChangeInfo, {
         ...sampleTab,
         status: 'complete',
       });
@@ -419,9 +440,9 @@ describe('TabEvents', () => {
       expect(spyTabEvents.cleanFromTabEvents).not.toHaveBeenCalled();
     });
 
-    it('should not trigger clean if cleanOnDomainChange was not enabled', () => {
+    it('should not trigger clean if cleanOnDomainChange was not enabled', async () => {
       expect(TestTabEvents.getTabToDomain()[0]).toBe('example.com');
-      TabEvents.onDomainChange(0, sampleChangeInfo, {
+      await TabEvents.onDomainChange(0, sampleChangeInfo, {
         ...sampleTab,
         status: 'complete',
         url: 'http://domain.cad',
@@ -430,11 +451,11 @@ describe('TabEvents', () => {
       expect(spyTabEvents.cleanFromTabEvents).not.toHaveBeenCalled();
     });
 
-    it('should trigger clean if mainDomain was changed and domainChangeCleanup is enabled', () => {
+    it('should trigger clean if mainDomain was changed and domainChangeCleanup is enabled', async () => {
       TestStore.changeSetting(SettingID.CLEAN_DOMAIN_CHANGE, true);
       // reuse previous tabId to change domain
       expect(TestTabEvents.getTabToDomain()[0]).toBe('domain.cad');
-      TabEvents.onDomainChange(0, sampleChangeInfo, {
+      await TabEvents.onDomainChange(0, sampleChangeInfo, {
         ...sampleTab,
         status: 'complete',
       });
@@ -442,11 +463,11 @@ describe('TabEvents', () => {
       expect(spyTabEvents.cleanFromTabEvents).toHaveBeenCalledTimes(1);
     });
 
-    it('should trigger clean if mainDomain was changed to a home/blank/new tab and domainChangeCleanup is enabled', () => {
+    it('should trigger clean if mainDomain was changed to a home/blank/new tab and domainChangeCleanup is enabled', async () => {
       TestStore.changeSetting(SettingID.CLEAN_DOMAIN_CHANGE, true);
       // reuse previous tabId to change domain to blank
       expect(TestTabEvents.getTabToDomain()[0]).toBe('example.com');
-      TabEvents.onDomainChange(0, sampleChangeInfo, {
+      await TabEvents.onDomainChange(0, sampleChangeInfo, {
         ...sampleTab,
         status: 'complete',
         url: 'about:blank',
@@ -455,11 +476,11 @@ describe('TabEvents', () => {
       expect(spyTabEvents.cleanFromTabEvents).toHaveBeenCalledTimes(1);
     });
 
-    it('should not trigger cleaning if previous domain was a new/blank/home tab with domainChangeCleanup enabled', () => {
+    it('should not trigger cleaning if previous domain was a new/blank/home tab with domainChangeCleanup enabled', async () => {
       TestStore.changeSetting(SettingID.CLEAN_DOMAIN_CHANGE, true);
       // reuse previous tabId of blank tab to new domain.
       expect(TestTabEvents.getTabToDomain()[0]).toBe('');
-      TabEvents.onDomainChange(0, sampleChangeInfo, {
+      await TabEvents.onDomainChange(0, sampleChangeInfo, {
         ...sampleTab,
         status: 'complete',
       });
@@ -467,11 +488,11 @@ describe('TabEvents', () => {
       expect(spyTabEvents.cleanFromTabEvents).not.toHaveBeenCalled();
     });
 
-    it('should not trigger if next domain is an empty string (highly unlikely scenario)', () => {
+    it('should not trigger if next domain is an empty string (highly unlikely scenario)', async () => {
       TestStore.changeSetting(SettingID.CLEAN_DOMAIN_CHANGE, true);
       // reuse previous tabId to go from domain to empty string...which usually doesn't happen
       expect(TestTabEvents.getTabToDomain()[0]).toBe('example.com');
-      TabEvents.onDomainChange(0, sampleChangeInfo, {
+      await TabEvents.onDomainChange(0, sampleChangeInfo, {
         ...sampleTab,
         status: 'complete',
         url: '',
@@ -484,13 +505,29 @@ describe('TabEvents', () => {
 
   describe('onDomainChangeRemove', () => {
     // This function doesn't throw any errors when tabId does not exist, so one test covers all.
-    it('should remove old mainDomain from closed tabId', () => {
+    it('should remove old mainDomain from closed tabId', async () => {
       expect(TestTabEvents.getTabToDomain()[0]).toBe('example.com');
-      TabEvents.onDomainChangeRemove(0, {
+      await TabEvents.onDomainChangeRemove(0, {
         windowId: 1,
         isWindowClosing: false,
       });
       expect(TestTabEvents.getTabToDomain()[0]).toBe(undefined);
+    });
+
+    it('should replace the old tab mapping', async () => {
+      TestTabEvents.setTabToDomain({ 0: 'example.com' });
+      when(global.browser.tabs.get)
+        .calledWith(1)
+        .mockResolvedValue({
+          ...sampleTab,
+          id: 1,
+          url: 'https://domain.cad',
+        } as never);
+
+      await TabEvents.onDomainChangeReplaced(1, 0);
+
+      expect(TestTabEvents.getTabToDomain()[0]).toBe(undefined);
+      expect(TestTabEvents.getTabToDomain()[1]).toBe('domain.cad');
     });
   });
 
@@ -501,7 +538,7 @@ describe('TabEvents', () => {
 
     it('should do nothing if activeMode is disabled', async () => {
       await TabEvents.cleanFromTabEvents();
-      expect(spyAlarmEvents.createActiveModeAlarm).not.toHaveBeenCalled();
+      expect(spyAlarmEvents.scheduleActiveModeCleanup).not.toHaveBeenCalled();
     });
 
     it('should create an "alarm" for cleaning when activeMode is enabled', async () => {
@@ -511,16 +548,7 @@ describe('TabEvents', () => {
       TestStore.changeSetting(SettingID.ACTIVE_MODE, true);
       TestStore.changeSetting(SettingID.CLEAN_DELAY, 1);
       await TabEvents.cleanFromTabEvents();
-      expect(spyAlarmEvents.createActiveModeAlarm).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not create an alarm if one exists already when activeMode is enabled', async () => {
-      when(global.browser.alarms.get)
-        .calledWith('activeModeAlarm')
-        .mockResolvedValue({ name: 'activeModeAlarm' } as never);
-      TestStore.changeSetting(SettingID.ACTIVE_MODE, true);
-      await TabEvents.cleanFromTabEvents();
-      expect(spyAlarmEvents.createActiveModeAlarm).not.toHaveBeenCalled();
+      expect(spyAlarmEvents.scheduleActiveModeCleanup).toHaveBeenCalledTimes(1);
     });
   });
 });
