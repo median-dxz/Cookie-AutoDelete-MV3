@@ -76,6 +76,8 @@ export default defineConfig(() => {
       outDir: resolve(dirname, `dist`, `${browser}`),
       emptyOutDir: true,
       sourcemap: false,
+      // Extension resources are local; disable modulePreload to prevent Chromium cross-world preload warnings.
+      modulePreload: false,
       rolldownOptions: {
         output: {
           codeSplitting: {
