@@ -65,7 +65,7 @@ export const showNumberOfCookiesInTitle = async (
     }),
   );
   const newData = {
-    cookies: otherInfo.cookieLength || (curData && curData[2]) || 0,
+    cookies: otherInfo.cookieLength ?? curData?.[2] ?? 0,
     list: otherInfo.listType || (curData && curData[1]) || 'NO LIST',
   };
 
