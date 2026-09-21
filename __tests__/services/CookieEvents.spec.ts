@@ -61,6 +61,14 @@ describe('CookieEvents', () => {
   describe('onCookieChanged()', () => {
     const spyTabUpdate = jest.spyOn(TabEvents, 'onTabUpdate');
 
+    beforeAll(() => {
+      spyTabUpdate.mockResolvedValue(undefined);
+    });
+
+    afterAll(() => {
+      spyTabUpdate.mockRestore();
+    });
+
     it('should do nothing if cookie is not part of any active tabs', async () => {
       await CookieEvents.onCookieChanged({
         removed: false,
@@ -81,6 +89,47 @@ describe('CookieEvents', () => {
         'cookie.value',
         '***',
       );
+    });
+
+    it('waits for every matching tab update', async () => {
+      global.browser.tabs.query.mockResolvedValueOnce([
+        { ...defaultTab, id: 1 },
+        { ...defaultTab, id: 2 },
+      ]);
+
+      const releases: Array<() => void> = [];
+      let allStarted!: () => void;
+
+      const started = new Promise<void>((resolve) => {
+        allStarted = resolve;
+      });
+
+      spyTabUpdate.mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            releases.push(resolve);
+            if (releases.length === 2) allStarted();
+          }),
+      );
+
+      let finished = false;
+      const update = CookieEvents.onCookieChanged({
+        removed: false,
+        cookie: defaultCookie,
+        cause: 'overwrite',
+      }).then(() => {
+        finished = true;
+      });
+
+      await started;
+      releases[0]();
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(finished).toBe(false);
+      
+      releases[1]();
+      await update;
+      expect(finished).toBe(true);
+      spyTabUpdate.mockResolvedValue(undefined);
     });
 
     it('should not force tab update if tab url is undefined', async () => {

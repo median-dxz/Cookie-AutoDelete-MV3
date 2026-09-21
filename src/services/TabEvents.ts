@@ -11,30 +11,20 @@
  * SOFTWARE.
  */
 
-import shortid from 'shortid';
 import browser from 'webextension-polyfill';
 import { SettingID } from '../typings/Enums';
 import AlarmEvents from './AlarmEvents';
-import {
-  checkIfProtected,
-  showNumberOfCookiesInIcon,
-} from './BrowserActionService';
+import { scheduleTabActionUpdate } from './BrowserActionService';
+import CleanupMarker from './CleanupMarker';
 import type { CookieChangeInfo } from './CookieEvents';
 import {
-  CADCOOKIENAME,
   cadLog,
   createPartialTabInfo,
   extractMainDomain,
-  getAllCookiesForDomain,
   getHostname,
   getSetting,
-  isAWebpage,
-  isFirefox,
-  isFirstPartyIsolate,
-  returnOptionalCookieAPIAttributes,
 } from './Libs';
 import StoreUser from './StoreUser';
-import { selectSettingValues } from '../redux/SettingsSlice';
 
 export default class TabEvents extends StoreUser {
   private static readonly TAB_TO_DOMAIN_STORAGE_KEY = 'tabToDomain';
@@ -54,9 +44,7 @@ export default class TabEvents extends StoreUser {
     TabEvents.tabToDomain = {};
     for (const tab of tabs) {
       if (tab.id !== undefined) {
-        TabEvents.tabToDomain[tab.id] = extractMainDomain(
-          getHostname(tab.url),
-        );
+        TabEvents.tabToDomain[tab.id] = extractMainDomain(getHostname(tab.url));
       }
     }
     await TabEvents.saveTabToDomain();
@@ -102,75 +90,36 @@ export default class TabEvents extends StoreUser {
       }
     }
   }
-  public static onTabUpdate(
+  public static async onTabUpdate(
     tabId: number,
     changeInfo: browser.Tabs.OnUpdatedChangeInfoType & {
       cookieChanged?: CookieChangeInfo;
     },
     tab: browser.Tabs.Tab,
-  ): void {
-    if (tab.status === 'complete') {
-      const debug = getSetting(
-        StoreUser.store.getState(),
-        SettingID.DEBUG_MODE,
-      ) as boolean;
-      const partialTabInfo = createPartialTabInfo(tab);
-      // Truncate ChangeInfo.favIconUrl as we have no use for it in debug.
-      if (changeInfo.favIconUrl && debug) {
-        changeInfo.favIconUrl = '***';
-      }
-      if (!TabEvents.onTabUpdateDelay) {
-        TabEvents.onTabUpdateDelay = true;
-        cadLog(
-          {
-            msg: 'TabEvents.onTabUpdate: action delay has been set for ~750 ms.',
-            x: { tabId, changeInfo, partialTabInfo },
-          },
-          debug,
-        );
-        setTimeout(() => {
-          cadLog(
-            {
-              msg: 'TabEvents.onTabUpdate: actions will now commence.',
-              x: { tabId, changeInfo, partialTabInfo },
-            },
-            debug,
-          );
-          // Need to check if the tab is still valid.
-          browser.tabs
-            .get(tabId)
-            .then(() => {
-              TabEvents.getAllCookieActions(tab);
-              cadLog(
-                {
-                  msg: 'TabEvents.onTabUpdate: actions have been processed and flag cleared.',
-                },
-                debug,
-              );
-            })
-            .catch(() => {
-              cadLog(
-                {
-                  msg: 'TabEvents.onTabUpdate: Tab is no longer valid.  Skipping actions.',
-                  x: { tabId, changeInfo, partialTabInfo },
-                },
-                debug,
-              );
-            })
-            .finally(() => {
-              TabEvents.onTabUpdateDelay = false;
-            });
-        }, 750);
-      } else {
-        cadLog(
-          {
-            msg: 'TabEvents.onTabUpdate: actions delay is pending already.',
-            x: { tabId, changeInfo, partialTabInfo },
-          },
-          debug,
-        );
-      }
+  ): Promise<void> {
+    if (changeInfo.status !== 'complete' && !changeInfo.cookieChanged) return;
+
+    const debug = getSetting(
+      StoreUser.store.getState(),
+      SettingID.DEBUG_MODE,
+    ) as boolean;
+    const partialTabInfo = createPartialTabInfo(tab);
+    // Truncate ChangeInfo.favIconUrl as we have no use for it in debug.
+    if (changeInfo.favIconUrl && debug) {
+      changeInfo.favIconUrl = '***';
     }
+    cadLog(
+      {
+        msg: 'TabEvents.onTabUpdate: cleanup marker check started and tab action update queued.',
+        x: { tabId, changeInfo, partialTabInfo },
+      },
+      debug,
+    );
+
+    await Promise.all([
+      CleanupMarker.register(tab),
+      scheduleTabActionUpdate(tabId, StoreUser.store.getState),
+    ]);
   }
 
   public static async onDomainChange(
@@ -291,9 +240,7 @@ export default class TabEvents extends StoreUser {
     delete TabEvents.tabToDomain[removedTabId];
 
     const tab = await browser.tabs.get(addedTabId);
-    TabEvents.tabToDomain[addedTabId] = extractMainDomain(
-      getHostname(tab.url),
-    );
+    TabEvents.tabToDomain[addedTabId] = extractMainDomain(getHostname(tab.url));
     await TabEvents.saveTabToDomain();
   }
 
@@ -304,115 +251,6 @@ export default class TabEvents extends StoreUser {
 
     await AlarmEvents.scheduleActiveModeCleanup();
   };
-
-  public static getAllCookieActions = async (
-    tab: browser.Tabs.Tab,
-  ): Promise<void> => {
-    if (!tab.url || tab.url === '') return;
-    if (tab.url.startsWith('about:') || tab.url.startsWith('chrome:')) return;
-    const debug = getSetting(
-      StoreUser.store.getState(),
-      SettingID.DEBUG_MODE,
-    ) as boolean;
-    const partialTabInfo = createPartialTabInfo(tab);
-    const cookies = await getAllCookiesForDomain(
-      StoreUser.store.getState(),
-      tab,
-    );
-    const settings = selectSettingValues(
-      StoreUser.store.getState().settings,
-      SettingID.DEBUG_MODE,
-      SettingID.CLEANUP_CACHE,
-      SettingID.CLEANUP_INDEXEDDB,
-      SettingID.CLEANUP_LOCALSTORAGE,
-      SettingID.CLEANUP_PLUGINDATA,
-      SettingID.CLEANUP_SERVICEWORKERS,
-      SettingID.NUM_COOKIES_ICON,
-    );
-
-    if (!cookies) {
-      cadLog(
-        {
-          msg: 'TabEvents.getAllCookieActions: Libs.getAllCookiesForDomain returned undefined.  Skipping Cookie Actions.',
-          x: { partialTabInfo },
-        },
-        debug,
-      );
-      return;
-    }
-
-    const internalCookies = cookies.filter((c) => {
-      return c.name === CADCOOKIENAME;
-    });
-
-    if (
-      internalCookies.length === 0 &&
-      (settings.cacheCleanup ||
-        settings.indexedDBCleanup ||
-        settings.localStorageCleanup ||
-        settings.pluginDataCleanup ||
-        settings.serviceWorkersCleanup) &&
-      isAWebpage(tab.url) &&
-      !tab.url.startsWith('file:')
-    ) {
-      const cookiesAttributes = returnOptionalCookieAPIAttributes(
-        isFirefox(StoreUser.store.getState().cache),
-        {
-          expirationDate: Math.floor(Date.now() / 1000 + 31557600),
-          firstPartyDomain: (await isFirstPartyIsolate())
-            ? extractMainDomain(getHostname(tab.url))
-            : '',
-          name: CADCOOKIENAME,
-          path: `/${shortid.generate()}`,
-          storeId: tab.cookieStoreId,
-          url: tab.url,
-          value: CADCOOKIENAME,
-        },
-      );
-      await browser.cookies.set({ ...cookiesAttributes, url: tab.url });
-      cadLog(
-        {
-          msg: 'TabEvents.getAllCookieActions:  A temporary cookie has been set for future BrowsingData cleaning as the site did not set any cookies yet.',
-          x: { partialTabInfo, cadLSCookie: cookiesAttributes },
-        },
-        debug,
-      );
-    }
-    // Filter out cookie(s) that were set by this extension.
-    const cookieLength = cookies.length - internalCookies.length;
-    if (cookies.length !== cookieLength) {
-      cadLog(
-        {
-          msg: 'TabEvents.getAllCookieActions:  New Cookie Count after filtering out cookie set by extension',
-          x: { preFilterCount: cookies.length, newCookieCount: cookieLength },
-        },
-        debug,
-      );
-    }
-    cadLog(
-      {
-        msg: 'TabEvents.getAllCookieActions: executing checkIfProtected to update Icons and Title.',
-      },
-      debug,
-    );
-    await checkIfProtected(StoreUser.store.getState(), tab, cookieLength);
-
-    // Exclude Firefox Android for browser icons and badge texts
-    if (
-      settings.showNumOfCookiesInIcon &&
-      (StoreUser.store.getState().cache.platformOs || '') !== 'android'
-    ) {
-      cadLog(
-        {
-          msg: 'TabEvents.getAllCookieActions: executing showNumberOfCookiesInIcon.',
-        },
-        debug,
-      );
-      showNumberOfCookiesInIcon(tab, cookieLength);
-    }
-  };
-  // Add a delay to prevent multiple spawns of the browsingDataCleanup cookie
-  protected static onTabUpdateDelay = false;
 
   protected static tabToDomain: { [key: number]: string } = {};
 }

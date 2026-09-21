@@ -13,7 +13,19 @@
 
 import type { State } from '../redux/Store';
 import { ListType, SettingID } from '../typings/Enums';
-import { getHostname, returnMatchedExpressionObject } from './Libs';
+import {
+  getHostname,
+  returnMatchedExpressionObject,
+  CADCOOKIENAME,
+  cadLog,
+  createPartialTabInfo,
+  getAllCookiesForDomain,
+  getSetting,
+  isAWebpage,
+  sleep,
+  waitUntil,
+} from './Libs';
+
 import browser from 'webextension-polyfill';
 
 // Show the # of cookies in icon
@@ -141,80 +153,203 @@ export const checkIfProtected = async (
     });
   }
 
-  activeTabs.forEach((aTab) => {
-    const matchedExpression = returnMatchedExpressionObject(
-      state,
-      aTab.cookieStoreId || 'default',
-      getHostname(aTab.url || ''),
-    );
+  const results = await Promise.allSettled(
+    activeTabs.map(async (aTab) => {
+      const matchedExpression = returnMatchedExpressionObject(
+        state,
+        aTab.cookieStoreId || 'default',
+        getHostname(aTab.url || ''),
+      );
 
-    if (matchedExpression) {
-      showNumberOfCookiesInTitle(aTab, {
-        platformOS: state.cache.platformOs as string,
-        listType: matchedExpression.listType,
-        cookieLength,
-      });
-    } else {
-      showNumberOfCookiesInTitle(aTab, {
-        platformOS: state.cache.platformOs as string,
-        listType: 'NO LIST',
-        cookieLength,
-      });
-    }
-
-    // Can't set icons on Android.
-    if (state.cache.platformOs && state.cache.platformOs === 'android') return;
-
-    if (matchedExpression) {
-      switch (matchedExpression.listType) {
-        case ListType.WHITE:
-          if (active) {
-            setIconColor(aTab);
-          } else {
-            setBadgeColor(aTab);
-          }
-          break;
-        case ListType.GREY:
-          if (active) {
-            void setIconColor(
-              aTab,
-              state.settings[SettingID.KEEP_DEFAULT_ICON].value as boolean,
-              'yellow',
-            );
-          } else {
-            setBadgeColor(aTab, 'yellow');
-          }
-          break;
-        default:
-          if (active) {
-            void setIconColor(
-              aTab,
-              state.settings[SettingID.KEEP_DEFAULT_ICON].value as boolean,
-              'red',
-            );
-          } else {
-            setBadgeColor(aTab, 'red');
-          }
-          break;
-      }
-    } else {
-      if (cookieLength !== undefined && cookieLength === 0) {
-        if (active) {
-          void setIconColor(aTab);
-        } else {
-          void setBadgeColor(aTab);
-        }
+      if (matchedExpression) {
+        await showNumberOfCookiesInTitle(aTab, {
+          platformOS: state.cache.platformOs as string,
+          listType: matchedExpression.listType,
+          cookieLength,
+        });
       } else {
-        if (active) {
-          void setIconColor(
-            aTab,
-            state.settings[SettingID.KEEP_DEFAULT_ICON].value as boolean,
-            'red',
-          );
-        } else {
-          void setBadgeColor(aTab, 'red');
-        }
+        await showNumberOfCookiesInTitle(aTab, {
+          platformOS: state.cache.platformOs as string,
+          listType: 'NO LIST',
+          cookieLength,
+        });
       }
+
+      // Can't set icons on Android.
+      if (state.cache.platformOs && state.cache.platformOs === 'android') {
+        return;
+      }
+
+      if (matchedExpression) {
+        switch (matchedExpression.listType) {
+          case ListType.WHITE:
+            if (active) {
+              await setIconColor(aTab);
+            } else {
+              await setBadgeColor(aTab);
+            }
+            break;
+          case ListType.GREY:
+            if (active) {
+              await setIconColor(
+                aTab,
+                state.settings[SettingID.KEEP_DEFAULT_ICON].value as boolean,
+                'yellow',
+              );
+            } else {
+              await setBadgeColor(aTab, 'yellow');
+            }
+            break;
+          default:
+            if (active) {
+              await setIconColor(
+                aTab,
+                state.settings[SettingID.KEEP_DEFAULT_ICON].value as boolean,
+                'red',
+              );
+            } else {
+              await setBadgeColor(aTab, 'red');
+            }
+            break;
+        }
+      } else if (cookieLength !== undefined && cookieLength === 0) {
+        if (active) {
+          await setIconColor(aTab);
+        } else {
+          await setBadgeColor(aTab);
+        }
+      } else if (active) {
+        await setIconColor(
+          aTab,
+          state.settings[SettingID.KEEP_DEFAULT_ICON].value as boolean,
+          'red',
+        );
+      } else {
+        await setBadgeColor(aTab, 'red');
+      }
+    }),
+  );
+
+  const failures = results.filter(
+    (result): result is PromiseRejectedResult => result.status === 'rejected',
+  );
+
+  if (failures.length === 1) {
+    throw failures[0].reason;
+  } else if (failures.length > 0) {
+    throw new AggregateError(
+      failures.map((failure) => failure.reason),
+      'Failed to update one or more tab actions.',
+    );
+  }
+};
+
+const tabActionUpdates = new Map<
+  number,
+  { version: number; promise: Promise<void> }
+>();
+
+export function scheduleTabActionUpdate(
+  tabId: number,
+  getState: () => State,
+): Promise<void> {
+  const pending = tabActionUpdates.get(tabId);
+  if (pending) {
+    pending.version += 1;
+    return pending.promise;
+  }
+
+  const state = {
+    version: 0,
+    promise: Promise.resolve(),
+  };
+  const update = async () => {
+    await sleep(750);
+    while (true) {
+      const version = state.version;
+      let currentTab: browser.Tabs.Tab;
+      try {
+        currentTab = await browser.tabs.get(tabId);
+      } catch {
+        cadLog(
+          {
+            msg: 'BrowserActionService.scheduleTabActionUpdate: Tab is no longer valid. Skipping actions.',
+            x: { tabId },
+          },
+          getSetting(getState(), SettingID.DEBUG_MODE) as boolean,
+        );
+        return;
+      }
+
+      if (currentTab.status === 'complete') {
+        await updateTabAction(getState(), currentTab);
+      }
+      if (version === state.version) return;
     }
+  };
+  state.promise = waitUntil(update()).finally(() => {
+    tabActionUpdates.delete(tabId);
   });
+  tabActionUpdates.set(tabId, state);
+  return state.promise;
+}
+
+const updateTabAction = async (
+  state: State,
+  tab: browser.Tabs.Tab,
+): Promise<void> => {
+  if (!tab.url || !isAWebpage(tab.url)) return;
+
+  const debug = getSetting(state, SettingID.DEBUG_MODE) as boolean;
+  const showNumOfCookiesInIcon = getSetting(
+    state,
+    SettingID.NUM_COOKIES_ICON,
+  ) as boolean;
+
+  const partialTabInfo = createPartialTabInfo(tab);
+  const cookies = await getAllCookiesForDomain(state, tab);
+
+  if (!cookies) {
+    cadLog(
+      {
+        msg: 'BrowserActionService.updateTabAction: Libs.getAllCookiesForDomain returned undefined. Skipping tab actions.',
+        x: { partialTabInfo },
+      },
+      debug,
+    );
+    return;
+  }
+
+  const internalCookies = cookies.filter((c) => {
+    return c.name === CADCOOKIENAME;
+  });
+  // Filter out cookie(s) that were set by this extension.
+  const cookieLength = cookies.length - internalCookies.length;
+  if (cookies.length !== cookieLength) {
+    cadLog(
+      {
+        msg: 'BrowserActionService.updateTabAction: New Cookie Count after filtering out cookie set by extension',
+        x: { preFilterCount: cookies.length, newCookieCount: cookieLength },
+      },
+      debug,
+    );
+  }
+  cadLog(
+    {
+      msg: 'BrowserActionService.updateTabAction: executing checkIfProtected to update Icons and Title.',
+    },
+    debug,
+  );
+  await checkIfProtected(state, tab, cookieLength);
+
+  // Exclude Firefox Android for browser icons and badge texts
+  if (showNumOfCookiesInIcon && (state.cache.platformOs || '') !== 'android') {
+    cadLog(
+      {
+        msg: 'BrowserActionService.updateTabAction: executing showNumberOfCookiesInIcon.',
+      },
+      debug,
+    );
+    await showNumberOfCookiesInIcon(tab, cookieLength);
+  }
 };

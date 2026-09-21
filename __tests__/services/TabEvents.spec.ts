@@ -17,18 +17,19 @@ import type * as browser from 'webextension-polyfill';
 
 import { configureWrapStore, State } from '../../src/redux/Store';
 import AlarmEvents from '../../src/services/AlarmEvents';
-import * as BrowserActionService from '../../src/services/BrowserActionService';
+
 import * as Lib from '../../src/services/Libs';
 import StoreUser from '../../src/services/StoreUser';
 import TabEvents from '../../src/services/TabEvents';
+
 import { addCache } from '../../src/redux/CacheSlice';
-import { BrowserName, SettingID } from '../../src/typings/Enums';
+import { SettingID } from '../../src/typings/Enums';
 import { resetSettings, updateSetting } from '../../src/redux/SettingsSlice';
 
 import { initialState } from '../__mock__/initialState';
 
 const spyAlarmEvents = global.generateSpies(AlarmEvents);
-const spyBrowserActions = global.generateSpies(BrowserActionService);
+
 const spyLib = global.generateSpies(Lib);
 const spyTabEvents = global.generateSpies(TabEvents);
 
@@ -61,9 +62,6 @@ class TestTabEvents extends TabEvents {
   public static setTabToDomain(tabToDomain: Record<number, string>) {
     TabEvents.tabToDomain = tabToDomain;
   }
-  public static getOnTabUpdateDelay() {
-    return TabEvents.onTabUpdateDelay;
-  }
 }
 
 const sampleChangeInfo: browser.Tabs.OnUpdatedChangeInfoType = {
@@ -92,6 +90,7 @@ const sampleTab: browser.Tabs.Tab = {
 
 describe('TabEvents', () => {
   beforeAll(() => {
+    jest.mocked(global.browser.action.getTitle).mockResolvedValue('');
     when(global.browser.runtime.getManifest)
       .calledWith()
       .mockReturnValue({ version: '0.12.34' } as never);
@@ -105,171 +104,8 @@ describe('TabEvents', () => {
   });
 
   afterEach(() => {
-    jest.runAllTimers();
     jest.clearAllTimers();
     TestStore.resetSetting();
-  });
-
-  describe('getAllCookieActions', () => {
-    beforeAll(() => {
-      when(global.browser.cookies.getAll)
-        .calledWith({ domain: '' })
-        .mockResolvedValue([] as never);
-      when(global.browser.cookies.getAll)
-        .calledWith({ domain: 'domain.com', storeId: 'firefox-default' })
-        .mockResolvedValue([testCookie] as never);
-    });
-
-    const testCookie: browser.Cookies.Cookie = {
-      domain: 'domain.com',
-      hostOnly: true,
-      httpOnly: true,
-      name: 'blah',
-      path: '/',
-      sameSite: 'no_restriction',
-      secure: true,
-      session: true,
-      storeId: 'firefox-default',
-      value: 'test value',
-      firstPartyDomain: '',
-    };
-
-    it('should do nothing if url is undefined', async () => {
-      await TabEvents.getAllCookieActions({ ...sampleTab, url: undefined });
-      expect(spyLib.getAllCookiesForDomain).not.toHaveBeenCalled();
-    });
-
-    it('should do nothing if url is empty string', async () => {
-      await TabEvents.getAllCookieActions({ ...sampleTab, url: '' });
-      expect(spyLib.getAllCookiesForDomain).not.toHaveBeenCalled();
-    });
-
-    it('should do nothing if url is an internal page', async () => {
-      await TabEvents.getAllCookieActions({ ...sampleTab, url: 'about:home' });
-      await TabEvents.getAllCookieActions({
-        ...sampleTab,
-        url: 'chrome:newtab',
-      });
-      expect(spyLib.getAllCookiesForDomain).not.toHaveBeenCalled();
-    });
-
-    it('should do nothing if url is not valid', async () => {
-      await TabEvents.getAllCookieActions({ ...sampleTab, url: 'bad' });
-      expect(global.browser.cookies.getAll).not.toHaveBeenCalled();
-    });
-
-    it('should work on regular domains', async () => {
-      await TabEvents.getAllCookieActions({
-        ...sampleTab,
-        url: 'http://domain.com',
-      });
-      expect(spyBrowserActions.checkIfProtected.mock.calls[0][2]).toBe(1);
-    });
-
-    it('should create a cookie if clean cache was enabled and no CAD cookie was found', async () => {
-      when(global.browser.cookies.getAll)
-        .calledWith({ domain: 'cookie.net', storeId: 'firefox-default' })
-        .mockResolvedValue([] as never);
-      TestStore.changeSetting(SettingID.CLEANUP_CACHE, true);
-      await TabEvents.getAllCookieActions({
-        ...sampleTab,
-        url: 'http://cookie.net',
-      });
-      expect(global.browser.cookies.set).toHaveBeenCalledTimes(1);
-    });
-
-    it('should create a cookie if clean indexedDB was enabled and no CAD cookie was found', async () => {
-      when(global.browser.cookies.getAll)
-        .calledWith({ domain: 'cookie.net', storeId: 'firefox-default' })
-        .mockResolvedValue([] as never);
-      TestStore.changeSetting(SettingID.CLEANUP_INDEXEDDB, true);
-      await TabEvents.getAllCookieActions({
-        ...sampleTab,
-        url: 'http://cookie.net',
-      });
-      expect(global.browser.cookies.set).toHaveBeenCalledTimes(1);
-    });
-
-    it('should create a cookie if clean localStorage was enabled and no CAD cookie was found', async () => {
-      when(global.browser.cookies.getAll)
-        .calledWith({ domain: 'cookie.net', storeId: 'firefox-default' })
-        .mockResolvedValue([] as never);
-      TestStore.changeSetting(SettingID.CLEANUP_LOCALSTORAGE, true);
-      await TabEvents.getAllCookieActions({
-        ...sampleTab,
-        url: 'http://cookie.net',
-      });
-      expect(global.browser.cookies.set).toHaveBeenCalledTimes(1);
-    });
-
-    it('should create a cookie if clean plugin data was enabled and no CAD cookie was found', async () => {
-      when(global.browser.cookies.getAll)
-        .calledWith({ domain: 'cookie.net', storeId: 'firefox-default' })
-        .mockResolvedValue([] as never);
-      TestStore.changeSetting(SettingID.CLEANUP_PLUGINDATA, true);
-      await TabEvents.getAllCookieActions({
-        ...sampleTab,
-        url: 'http://cookie.net',
-      });
-      expect(global.browser.cookies.set).toHaveBeenCalledTimes(1);
-    });
-
-    it('should create a cookie if clean service workers was enabled and no CAD cookie was found', async () => {
-      when(global.browser.cookies.getAll)
-        .calledWith({ domain: 'cookie.net', storeId: 'firefox-default' })
-        .mockResolvedValue([] as never);
-      TestStore.changeSetting(SettingID.CLEANUP_SERVICEWORKERS, true);
-      await TabEvents.getAllCookieActions({
-        ...sampleTab,
-        url: 'http://cookie.net',
-      });
-      expect(global.browser.cookies.set).toHaveBeenCalledTimes(1);
-    });
-
-    it('should filter out CAD browsingDataCleanup cookie from total cookie count', async () => {
-      when(global.browser.cookies.getAll)
-        .calledWith({ domain: 'cookie.net', storeId: 'firefox-default' })
-        .mockResolvedValue([
-          { ...testCookie, name: Lib.CADCOOKIENAME },
-        ] as never);
-      await TabEvents.getAllCookieActions({
-        ...sampleTab,
-        url: 'http://cookie.net',
-      });
-      expect(spyBrowserActions.checkIfProtected.mock.calls[0][2]).toBe(0);
-    });
-
-    it('should not show cookie count in non-existent icon in Firefox Android', async () => {
-      TestStore.addCache({ key: 'platformOs', value: 'android' });
-      await TabEvents.getAllCookieActions({
-        ...sampleTab,
-        url: 'http://domain.com',
-      });
-      expect(
-        spyBrowserActions.showNumberOfCookiesInIcon,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('should create a cookie with firstPartyDomain if FPI is enabled', async () => {
-      when(global.browser.cookies.getAll)
-        .calledWith({ domain: 'cookie.net', storeId: 'firefox-default' })
-        .mockResolvedValue([] as never);
-      when(global.browser.cookies.getAll)
-        .calledWith({ domain: '' })
-        .mockResolvedValueOnce([] as never)
-        .mockRejectedValue(new Error('firstPartyDomain') as never);
-      TestStore.changeSetting(SettingID.CLEANUP_CACHE, true);
-      TestStore.addCache({ key: 'browserDetect', value: BrowserName.Firefox });
-
-      await TabEvents.getAllCookieActions({
-        ...sampleTab,
-        url: 'http://cookie.net',
-      });
-      expect(global.browser.cookies.set).toHaveBeenCalledTimes(1);
-      expect(global.browser.cookies.set.mock.calls[0][0]).toHaveProperty(
-        'firstPartyDomain',
-      );
-    });
   });
 
   describe('onTabDiscarded', () => {
@@ -307,76 +143,78 @@ describe('TabEvents', () => {
   });
 
   describe('onTabUpdate', () => {
-    beforeAll(() => {
-      when(spyTabEvents.getAllCookieActions)
-        .calledWith({} as browser.Tabs.Tab)
-        .mockResolvedValue(undefined);
-      when(global.browser.tabs.get)
-        .calledWith(0)
-        .mockResolvedValue({} as browser.Tabs.Tab);
-    });
-    afterAll(() => {
-      spyTabEvents.getAllCookieActions.mockRestore();
+    const completeChange = {
+      ...sampleChangeInfo,
+      status: 'complete' as const,
+    };
+
+    it('should ignore updates that are neither complete nor cookie changes', async () => {
+      await TabEvents.onTabUpdate(0, { title: 'changed' }, sampleTab);
+      expect(global.browser.tabs.get).not.toHaveBeenCalled();
+      expect(spyLib.getAllCookiesForDomain).not.toHaveBeenCalled();
     });
 
-    it('should do nothing if tab status is not "complete"', () => {
-      TabEvents.onTabUpdate(0, sampleChangeInfo, {
+    it('should preserve the old site marker but update the current navigation', async () => {
+      TestStore.changeSetting(SettingID.CLEANUP_CACHE, true);
+      const oldTab = {
         ...sampleTab,
-        status: 'loading',
-      });
-      expect(spyTabEvents.getAllCookieActions).not.toHaveBeenCalled();
-    });
+        id: 4,
+        status: 'complete' as const,
+        url: 'https://old.test',
+      };
+      const currentTab = {
+        ...sampleTab,
+        id: 4,
+        status: 'complete' as const,
+        url: 'https://current.test',
+      };
+      when(global.browser.cookies.getAll)
+        .calledWith({ domain: 'old.test', storeId: 'firefox-default' })
+        .mockResolvedValue([] as never);
+      when(global.browser.cookies.getAll)
+        .calledWith({ domain: 'current.test', storeId: 'firefox-default' })
+        .mockResolvedValue([] as never);
+      when(global.browser.tabs.get).calledWith(4).mockResolvedValue(currentTab);
 
-    it('should trigger getAllCookieActions', async () => {
-      TabEvents.onTabUpdate(0, sampleChangeInfo, {
-        ...sampleTab,
-        status: 'complete',
-      });
-      jest.runAllTimers();
-      // wait for the promise in setTimeout to resolve
-      await Promise.resolve();
-      expect(spyTabEvents.getAllCookieActions).toHaveBeenCalledTimes(1);
-    });
+      const oldUpdate = TabEvents.onTabUpdate(4, completeChange, oldTab);
+      const currentUpdate = TabEvents.onTabUpdate(
+        4,
+        completeChange,
+        currentTab,
+      );
+      await jest.advanceTimersByTimeAsync(750);
+      await Promise.all([oldUpdate, currentUpdate]);
 
-    it('should sanitize favIconUrl if status=complete and debug is true', () => {
-      TestStore.changeSetting(SettingID.DEBUG_MODE, true);
-      TabEvents.onTabUpdate(0, sampleChangeInfo, {
-        ...sampleTab,
-        status: 'complete',
+      expect(global.browser.cookies.set).toHaveBeenCalledTimes(2);
+      expect(
+        global.browser.cookies.set.mock.calls.map(([details]) => details.url),
+      ).toEqual(
+        expect.arrayContaining(['https://old.test', 'https://current.test']),
+      );
+      expect(global.browser.action.setTitle).toHaveBeenCalledTimes(1);
+      expect(global.browser.cookies.getAll).toHaveBeenCalledWith({
+        domain: 'current.test',
+        storeId: 'firefox-default',
       });
-      expect(spyLib.cadLog.mock.calls[0][0].x.changeInfo.favIconUrl).toBe(
-        '***',
+      expect(global.browser.action.setTitle).toHaveBeenCalledWith(
+        expect.objectContaining({ tabId: 4 }),
       );
     });
 
-    it('should not queue getAllCookieActions if one is pending already', async () => {
+    it('should sanitize favIconUrl when a complete update is logged', async () => {
       TestStore.changeSetting(SettingID.DEBUG_MODE, true);
-      expect(TestTabEvents.getOnTabUpdateDelay()).toBe(false);
-      TabEvents.onTabUpdate(0, sampleChangeInfo, {
+      const currentTab = {
         ...sampleTab,
-        status: 'complete',
-      });
-      expect(TestTabEvents.getOnTabUpdateDelay()).toBe(true);
-      TabEvents.onTabUpdate(0, sampleChangeInfo, {
-        ...sampleTab,
-        status: 'complete',
-      });
-      jest.runAllTimers();
-      await Promise.resolve();
-      expect(spyTabEvents.getAllCookieActions).toHaveBeenCalledTimes(1);
-    });
+        id: 9,
+        status: 'complete' as const,
+      };
+      const changeInfo = { ...completeChange };
+      when(global.browser.tabs.get).calledWith(9).mockResolvedValue(currentTab);
 
-    it('should do nothing if the tab is no longer valid (e.g., has been removed)', async () => {
-      when(global.browser.tabs.get)
-        .calledWith(1)
-        .mockRejectedValue(new Error());
-      TabEvents.onTabUpdate(1, sampleChangeInfo, {
-        ...sampleTab,
-        status: 'complete',
-      });
-      jest.runAllTimers();
-      await Promise.resolve();
-      expect(spyTabEvents.getAllCookieActions).not.toHaveBeenCalled();
+      const update = TabEvents.onTabUpdate(9, changeInfo, currentTab);
+      expect(changeInfo.favIconUrl).toBe('***');
+      await jest.advanceTimersByTimeAsync(750);
+      await update;
     });
   });
 

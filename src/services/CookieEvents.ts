@@ -31,17 +31,23 @@ export default class CookieEvents extends StoreUser {
       active: true,
       windowType: 'normal',
     });
-    tabQuery.forEach((tab) => {
-      // Tabs.id with tabs.TAB_ID_NONE do not host content tabs
-      // Tabs.url is always present as we already have the 'tabs' permission.
-      if (!tab.id || !tab.url) return;
-      if (
-        extractMainDomain(getHostname(tab.url)) ===
-        extractMainDomain(changeInfo.cookie.domain)
-      ) {
-        // Force Tab Update function
-        TabEvents.onTabUpdate(tab.id, { cookieChanged: changeInfo }, tab);
-      }
-    });
+    await Promise.all(
+      tabQuery.map(async (tab) => {
+        // Tabs.id with tabs.TAB_ID_NONE do not host content tabs
+        // Tabs.url is always present as we already have the 'tabs' permission.
+        if (!tab.id || !tab.url) return;
+        if (
+          extractMainDomain(getHostname(tab.url)) ===
+          extractMainDomain(changeInfo.cookie.domain)
+        ) {
+          // Force Tab Update function
+          await TabEvents.onTabUpdate(
+            tab.id,
+            { cookieChanged: changeInfo },
+            tab,
+          );
+        }
+      }),
+    );
   }
 }
