@@ -23,7 +23,7 @@ export default class AlarmEvents extends StoreUser {
 
   public static handleAlarmEvent = async () => {
     if (getSetting(StoreUser.store.getState(), SettingID.ACTIVE_MODE)) {
-      StoreUser.store.dispatch(
+      await StoreUser.store.dispatch(
         cookieCleanup({
           greyCleanup: false,
           ignoreOpenTabs: false,
