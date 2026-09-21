@@ -24,11 +24,10 @@
       "strict_min_version": "63.0"
     }
   },
-  "minimum_chrome_version": "92",
+  "minimum_chrome_version": "110",
   "options_page": "ui/settings/settings.html",
   "host_permissions": ["<all_urls>"],
   "permissions": [
-    "activeTab",
     "alarms",
     "browsingData",
     "contextMenus",
