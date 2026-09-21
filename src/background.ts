@@ -52,21 +52,35 @@ import { browserDetect } from './utils/BrowserDetect';
 
 (async () => {
   // Delay saving to disk to queue up actions
-  let delaySave = false;
+  const SAVE_INTERVAL = 1000;
+
+  let saveRunning = false;
+  let saveRequested = false;
+
+  const saveState = async () => {
+    await browser.storage.local.set({
+      state: JSON.stringify(store.getState()),
+    });
+  };
+
   const saveToStorage = async () => {
-    if (!delaySave) {
-      delaySave = true;
+    saveRequested = true;
 
-      await sleep(1000);
+    if (saveRunning) return;
+    saveRunning = true;
 
-      await waitUntil(
-        browser.storage.local.set({
-          state: JSON.stringify(store.getState()),
-        }),
-      );
+    return waitUntil(
+      (async () => {
+        while (saveRequested) {
+          await sleep(SAVE_INTERVAL);
 
-      delaySave = false;
-    }
+          saveRequested = false;
+          await saveState();
+        }
+      })(),
+    ).finally(() => {
+      saveRunning = false;
+    });
   };
 
   const mf = browser.runtime.getManifest();
