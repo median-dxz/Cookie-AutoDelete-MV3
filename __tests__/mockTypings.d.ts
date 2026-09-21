@@ -62,3 +62,6 @@ declare function generateSpies<T extends { new (...args: any[]) }>(
 ): JestSpyObject<{
   [K in keyof T]: T[K];
 }>;
+
+declare module '*.scss';
+declare module '*.css';
