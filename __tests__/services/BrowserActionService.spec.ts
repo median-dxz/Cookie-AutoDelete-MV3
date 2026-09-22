@@ -28,6 +28,8 @@ import { resetSettings, updateSetting } from '../../src/redux/SettingsSlice';
 
 import { initialState } from '../__mock__/initialState';
 
+const spyLib = global.generateSpies(Lib);
+
 jest.useFakeTimers();
 
 const store: Store<State> = configureWrapStore(initialState);
@@ -63,13 +65,7 @@ describe('tab action updates', () => {
       version: '4.0.0',
     });
     jest.mocked(global.browser.action.getTitle).mockResolvedValue('');
-    when(global.browser.cookies.getAll).defaultResolvedValue([]);
-    when(global.browser.cookies.getAll)
-      .calledWith({ domain: '' })
-      .mockResolvedValue([] as never);
-    when(global.browser.cookies.getAll)
-      .calledWith({ domain: 'domain.com', storeId: 'firefox-default' })
-      .mockResolvedValue([testCookie] as never);
+    spyLib.getAllCookiesForDomain.mockResolvedValue([]);
   });
 
   const testCookie: browser.Cookies.Cookie = {
@@ -101,9 +97,7 @@ describe('tab action updates', () => {
     store.dispatch(
       updateSetting({ name: SettingID.NUM_COOKIES_ICON, value: true }),
     );
-    when(global.browser.cookies.getAll)
-      .calledWith({ domain: 'render.test', storeId: 'firefox-default' })
-      .mockResolvedValue([...cookies] as never);
+    spyLib.getAllCookiesForDomain.mockResolvedValueOnce([...cookies]);
     jest
       .mocked(global.browser.tabs.get)
       .mockResolvedValueOnce({ ...sampleTab, url: 'https://render.test' });
@@ -184,6 +178,9 @@ describe('tab action updates', () => {
       .mocked(global.browser.action.setTitle)
       .mockReturnValueOnce(firstAction);
     const currentTab = { ...sampleTab, id: 7 };
+    spyLib.getAllCookiesForDomain
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([testCookie]);
     when(global.browser.tabs.get).calledWith(7).mockResolvedValue(currentTab);
 
     const first = scheduleTabActionUpdate(7, store.getState);

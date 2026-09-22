@@ -55,4 +55,5 @@ export interface CookiePropertiesCleanup extends Cookies.Cookie {
   mainDomain: string;
   hostname: string;
   preparedCookieDomain: string;
+  partitionDomain?: string;
 }

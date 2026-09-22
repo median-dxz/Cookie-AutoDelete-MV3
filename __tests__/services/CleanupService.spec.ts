@@ -325,6 +325,48 @@ describe('CleanupService', () => {
         undefined,
       );
     });
+
+    it('should pass the complete partitionKey to cookies.remove when cookie is partitioned', async () => {
+      const partitionKey = {
+        topLevelSite: 'https://example.com',
+        hasCrossSiteAncestor: true,
+      };
+      const partitionedCookie: CookiePropertiesCleanup = {
+        ...mockCookie,
+        partitionKey,
+        partitionDomain: 'example.com',
+      };
+      const toRemove: CleanReasonObject[] = [
+        {
+          cached: false,
+          cleanCookie: true,
+          cookie: partitionedCookie,
+          reason: ReasonClean.NoMatchedExpression,
+        } as CleanReasonObject,
+      ];
+      when(global.browser.cookies.remove)
+        .calledWith(expect.any(Object))
+        .mockResolvedValueOnce(true as never);
+      await cleanCookies(initialState, toRemove);
+      expect(global.browser.cookies.remove).toHaveBeenCalledWith({
+        name: 'key',
+        partitionKey,
+        storeId: 'firefox-default',
+        url: 'https://test.com/',
+      });
+    });
+
+    it('should omit partitionKey when removing an unpartitioned cookie', async () => {
+      when(global.browser.cookies.remove)
+        .calledWith(expect.any(Object))
+        .mockResolvedValueOnce(true as never);
+
+      await cleanCookies(initialState, [removeCookies[0]]);
+
+      expect(global.browser.cookies.remove.mock.calls[0][0]).not.toHaveProperty(
+        'partitionKey',
+      );
+    });
   });
 
   describe('cleanCookiesOperation()', () => {
@@ -418,7 +460,11 @@ describe('CleanupService', () => {
           .calledWith()
           .mockResolvedValue([{ id: 'firefox-default' }] as never);
         when(global.browser.cookies.getAll)
-          .calledWith({ storeId: 'firefox-default' })
+          .calledWith({
+            firstPartyDomain: undefined,
+            partitionKey: {},
+            storeId: 'firefox-default',
+          })
           .mockResolvedValue([
             mockCookie, // no list
             googleCookie, // greylist, opentab
@@ -444,9 +490,13 @@ describe('CleanupService', () => {
           1,
         );
         expect(global.browser.cookies.getAll).toHaveBeenCalledWith({
+          firstPartyDomain: undefined,
+          partitionKey: {},
           storeId: 'firefox-default',
         });
         expect(global.browser.cookies.getAll).toHaveBeenCalledWith({
+          firstPartyDomain: undefined,
+          partitionKey: {},
           storeId: 'default',
         });
         expect(global.browser.cookies.remove).toHaveBeenCalledTimes(2);
@@ -512,7 +562,11 @@ describe('CleanupService', () => {
 
       it('Regular clean, exclude open tabs, with only cookies in open tabs/whitelist.', async () => {
         when(global.browser.cookies.getAll)
-          .calledWith({ storeId: 'firefox-default' })
+          .calledWith({
+            firstPartyDomain: undefined,
+            partitionKey: {},
+            storeId: 'firefox-default',
+          })
           .mockResolvedValue([googleCookie, youtubeCookie] as never);
         const ffResult = await cleanCookiesOperation(
           firefoxState,
@@ -553,9 +607,13 @@ describe('CleanupService', () => {
           .mockResolvedValue(true as never);
         await cleanCookiesOperation(firefoxState, cleanupProperties);
         expect(global.browser.cookies.getAll).toHaveBeenCalledWith({
+          firstPartyDomain: undefined,
+          partitionKey: {},
           storeId: 'firefox-private',
         });
         expect(global.browser.cookies.getAll).toHaveBeenCalledWith({
+          firstPartyDomain: undefined,
+          partitionKey: {},
           storeId: 'private',
         });
       });
@@ -565,7 +623,11 @@ describe('CleanupService', () => {
           .calledWith()
           .mockResolvedValue(true as never);
         when(global.browser.cookies.getAll)
-          .calledWith({ storeId: 'firefox-private' })
+          .calledWith({
+            firstPartyDomain: undefined,
+            partitionKey: {},
+            storeId: 'firefox-private',
+          })
           .mockResolvedValue([
             {
               ...mockCookie,
@@ -607,6 +669,8 @@ describe('CleanupService', () => {
           ] as never);
         await cleanCookiesOperation(firefoxState, cleanupProperties);
         expect(global.browser.cookies.getAll).not.toHaveBeenCalledWith({
+          firstPartyDomain: undefined,
+          partitionKey: {},
           storeId: 'firefox-container-1',
         });
       });
@@ -624,6 +688,8 @@ describe('CleanupService', () => {
         };
         await cleanCookiesOperation(contextState, cleanupProperties);
         expect(global.browser.cookies.getAll).toHaveBeenCalledWith({
+          firstPartyDomain: undefined,
+          partitionKey: {},
           storeId: 'firefox-container-1',
         });
       });
@@ -759,7 +825,7 @@ describe('CleanupService', () => {
           .calledWith()
           .mockResolvedValue([{ id: '0' }] as never);
         when(global.browser.cookies.getAll)
-          .calledWith({ storeId: '0' })
+          .calledWith(expect.objectContaining({ storeId: '0' }))
           .mockResolvedValue(chromeCookies as never);
       });
 
@@ -768,9 +834,9 @@ describe('CleanupService', () => {
         expect(
           global.browser.extension.isAllowedIncognitoAccess,
         ).toHaveBeenCalledTimes(1);
-        expect(global.browser.cookies.getAll).toHaveBeenCalledWith({
-          storeId: '0',
-        });
+        expect(global.browser.cookies.getAll).toHaveBeenCalledWith(
+          expect.objectContaining({ storeId: '0' }),
+        );
       });
 
       it('should include private cookieStores if extension allowed in incognito mode', async () => {
@@ -778,9 +844,9 @@ describe('CleanupService', () => {
           .calledWith()
           .mockResolvedValue(true as never);
         await cleanCookiesOperation(chromeState, cleanupProperties);
-        expect(global.browser.cookies.getAll).toHaveBeenCalledWith({
-          storeId: '1',
-        });
+        expect(global.browser.cookies.getAll).toHaveBeenCalledWith(
+          expect.objectContaining({ storeId: '1' }),
+        );
       });
     });
   });
@@ -901,7 +967,12 @@ describe('CleanupService', () => {
 
     it('should clean all cookies for active tab domain and show notification.', async () => {
       when(global.browser.cookies.getAll)
-        .calledWith({ domain: 'google.com', storeId: 'firefox-default' })
+        .calledWith({
+          domain: 'google.com',
+          firstPartyDomain: undefined,
+          partitionKey: {},
+          storeId: 'firefox-default',
+        })
         .mockResolvedValue([googleCookie, googleCookie2] as never);
       when(global.browser.cookies.remove)
         .calledWith(expect.anything())
@@ -921,6 +992,35 @@ describe('CleanupService', () => {
         '2',
         '2',
       ]);
+    });
+
+    it('should preserve the complete partitionKey when manually removing a cookie', async () => {
+      const partitionKey = {
+        topLevelSite: 'https://example.com',
+        hasCrossSiteAncestor: true,
+      };
+      const partitionedCookie = { ...googleCookie, partitionKey };
+      when(global.browser.cookies.getAll)
+        .calledWith({
+          domain: 'google.com',
+          firstPartyDomain: undefined,
+          partitionKey: {},
+          storeId: 'firefox-default',
+        })
+        .mockResolvedValue([partitionedCookie] as never);
+      when(global.browser.cookies.remove)
+        .calledWith(expect.any(Object))
+        .mockResolvedValue({} as never);
+
+      const store = configureWrapStore(initialState);
+      await store.dispatch(clearCookiesForThisDomain(googleTab)).unwrap();
+
+      expect(global.browser.cookies.remove).toHaveBeenCalledWith({
+        name: partitionedCookie.name,
+        partitionKey,
+        storeId: partitionedCookie.storeId,
+        url: 'https://google.com/',
+      });
     });
 
     it('should just show notification if active tab domain has no cookies', async () => {
@@ -945,7 +1045,12 @@ describe('CleanupService', () => {
 
     it('should just show notification if active tab domain has only one cookie that for some reason cannot be cleared.', async () => {
       when(global.browser.cookies.getAll)
-        .calledWith({ domain: 'google.com', storeId: 'firefox-default' })
+        .calledWith(
+          expect.objectContaining({
+            domain: 'google.com',
+            storeId: 'firefox-default',
+          }),
+        )
         .mockResolvedValue([googleCookie] as never);
       when(global.browser.cookies.remove)
         .calledWith(expect.any(Object))
@@ -1796,6 +1901,233 @@ describe('CleanupService', () => {
       expect(result.reason).toBe(ReasonKeep.MatchedExpression);
       expect(result.cleanCookie).toBe(false);
     });
+
+    describe('with Partitioned Cookies (CHIPS)', () => {
+      const stateWithWhitelist = (domains: string[]): State => ({
+        ...initialState,
+        lists: {
+          default: domains.map((expression, index) => ({
+            expression,
+            id: `partition-case-${index}`,
+            listType: ListType.WHITE,
+            storeId: 'default',
+          })),
+        },
+      });
+      const closedTabs = {
+        greyCleanup: false,
+        ignoreOpenTabs: false,
+        openTabDomains: { 'firefox-default': [] },
+      };
+
+      it.each([
+        {
+          caseName: 'Case 1: first-party partition and host matched',
+          hostname: 'google.com',
+          partitionDomain: 'google.com',
+          whitelist: ['google.com'],
+          cleanCookie: false,
+          reason: ReasonKeep.MatchedExpression,
+        },
+        {
+          caseName: 'Case 2: neither domain matched',
+          hostname: 'tracker.net',
+          partitionDomain: 'random-site.com',
+          whitelist: [],
+          cleanCookie: true,
+          reason: ReasonClean.NoMatchedExpression,
+        },
+        {
+          caseName: 'Case 3: only partition domain matched',
+          hostname: 'doubleclick.net',
+          partitionDomain: 'bbc.com',
+          whitelist: ['bbc.com'],
+          cleanCookie: true,
+          reason: ReasonClean.NoMatchedExpression,
+        },
+        {
+          caseName: 'Case 4: only cookie host matched',
+          hostname: 'trusted-auth.com',
+          partitionDomain: 'sketchy-site.com',
+          whitelist: ['trusted-auth.com'],
+          cleanCookie: true,
+          reason: ReasonClean.NoMatchedExpression,
+        },
+        {
+          caseName: 'Case 5: both domains matched',
+          hostname: 'auth0.com',
+          partitionDomain: 'my-bank.com',
+          whitelist: ['auth0.com', 'my-bank.com'],
+          cleanCookie: false,
+          reason: ReasonKeep.MatchedExpression,
+        },
+      ])(
+        '$caseName',
+        ({ hostname, partitionDomain, whitelist, cleanCookie, reason }) => {
+          const result = isSafeToClean(
+            stateWithWhitelist(whitelist),
+            {
+              ...mockCookie,
+              hostname,
+              mainDomain: hostname,
+              partitionDomain,
+            },
+            closedTabs,
+          );
+
+          expect(result).toEqual(
+            expect.objectContaining({ cleanCookie, reason }),
+          );
+        },
+      );
+
+      it('keeps the cookie while its top-level partition site is open', () => {
+        const result = isSafeToClean(
+          stateWithWhitelist([]),
+          {
+            ...mockCookie,
+            hostname: 'doubleclick.net',
+            mainDomain: 'doubleclick.net',
+            partitionDomain: 'bbc.com',
+          },
+          {
+            ...closedTabs,
+            openTabDomains: { 'firefox-default': ['bbc.com'] },
+          },
+        );
+
+        expect(result).toEqual(
+          expect.objectContaining({
+            cleanCookie: false,
+            reason: ReasonKeep.OpenTabs,
+          }),
+        );
+      });
+
+      it('deletes after the top-level site closes even if the cookie host has its own open tab', () => {
+        const result = isSafeToClean(
+          stateWithWhitelist([]),
+          {
+            ...mockCookie,
+            hostname: 'doubleclick.net',
+            mainDomain: 'doubleclick.net',
+            partitionDomain: 'bbc.com',
+          },
+          {
+            ...closedTabs,
+            openTabDomains: { 'firefox-default': ['doubleclick.net'] },
+          },
+        );
+
+        expect(result).toEqual(
+          expect.objectContaining({
+            cleanCookie: true,
+            reason: ReasonClean.NoMatchedExpression,
+          }),
+        );
+      });
+
+      it('Case 5 (cookie name filtering): should clean if host matches expression with cookieNames but cookie name does not match', () => {
+        const cookieProperty: CookiePropertiesCleanup = {
+          ...mockCookie,
+          name: 'other-cookie',
+          hostname: 'examplewithcookiename.com', // only allows 'in-cookie-names'
+          mainDomain: 'examplewithcookiename.com',
+          partitionDomain: 'youtube.com', // whitelisted partition
+        };
+
+        const result = isSafeToClean(sampleState, cookieProperty, {
+          ...cleanupProperties,
+        });
+        expect(result.reason).toBe(
+          ReasonClean.MatchedExpressionButNoCookieName,
+        );
+        expect(result.cleanCookie).toBe(true);
+      });
+
+      it('Case 5 (cookie name filtering): should keep if host matches expression with cookieNames and cookie name matches', () => {
+        const cookieProperty: CookiePropertiesCleanup = {
+          ...mockCookie,
+          name: 'in-cookie-names',
+          hostname: 'examplewithcookiename.com',
+          mainDomain: 'examplewithcookiename.com',
+          partitionDomain: 'youtube.com',
+        };
+
+        const result = isSafeToClean(sampleState, cookieProperty, {
+          ...cleanupProperties,
+        });
+        expect(result.reason).toBe(ReasonKeep.MatchedExpression);
+        expect(result.cleanCookie).toBe(false);
+      });
+
+      describe('during startup cleanup (greyCleanup)', () => {
+        const startupProperties = {
+          ...cleanupProperties,
+          greyCleanup: true,
+        };
+
+        it('should clean if partition is in greylist even if host is in whitelist', () => {
+          const cookieProperty: CookiePropertiesCleanup = {
+            ...mockCookie,
+            hostname: 'youtube.com', // whitelisted
+            mainDomain: 'youtube.com',
+            partitionDomain: 'restart.clean', // greylist
+          };
+
+          const result = isSafeToClean(sampleState, cookieProperty, {
+            ...startupProperties,
+          });
+          expect(result.reason).toBe(ReasonClean.StartupCleanupAndGreyList);
+          expect(result.cleanCookie).toBe(true);
+        });
+
+        it('should clean if host is in greylist even if partition is in whitelist', () => {
+          const cookieProperty: CookiePropertiesCleanup = {
+            ...mockCookie,
+            hostname: 'restart.clean', // greylist
+            mainDomain: 'restart.clean',
+            partitionDomain: 'youtube.com', // whitelisted
+          };
+
+          const result = isSafeToClean(sampleState, cookieProperty, {
+            ...startupProperties,
+          });
+          expect(result.reason).toBe(ReasonClean.StartupCleanupAndGreyList);
+          expect(result.cleanCookie).toBe(true);
+        });
+
+        it('should keep if both host and partition are in whitelist on startup', () => {
+          const cookieProperty: CookiePropertiesCleanup = {
+            ...mockCookie,
+            hostname: 'youtube.com',
+            mainDomain: 'youtube.com',
+            partitionDomain: 'exampleWithCookieNameCleanAllCookiesTrue.com',
+          };
+
+          const result = isSafeToClean(sampleState, cookieProperty, {
+            ...startupProperties,
+          });
+          expect(result.reason).toBe(ReasonKeep.MatchedExpression);
+          expect(result.cleanCookie).toBe(false);
+        });
+
+        it('should clean with StartupNoMatchedExpression if partition is not matched on startup', () => {
+          const cookieProperty: CookiePropertiesCleanup = {
+            ...mockCookie,
+            hostname: 'youtube.com', // whitelisted
+            mainDomain: 'youtube.com',
+            partitionDomain: 'unmatched-partition.com',
+          };
+
+          const result = isSafeToClean(sampleState, cookieProperty, {
+            ...startupProperties,
+          });
+          expect(result.reason).toBe(ReasonClean.StartupNoMatchedExpression);
+          expect(result.cleanCookie).toBe(true);
+        });
+      });
+    });
   });
 
   describe('otherBrowsingDataCleanup()', () => {
@@ -2124,6 +2456,21 @@ describe('CleanupService', () => {
       expect(result.preparedCookieDomain).toBe('file:///folder/file.html');
       expect(result.hostname).toBe('file:///folder/file.html');
       expect(result.mainDomain).toBe('file:///folder/file.html');
+    });
+
+    it('derives partitionDomain from partitionKey.topLevelSite', () => {
+      const result = prepareCookie({
+        ...mockCookie,
+        partitionKey: { topLevelSite: 'https://example.com' },
+      });
+
+      expect(result.partitionDomain).toBe('example.com');
+    });
+
+    it('leaves partitionDomain undefined for an unpartitioned cookie', () => {
+      const result = prepareCookie(mockCookie);
+
+      expect(result.partitionDomain).toBeUndefined();
     });
   });
 

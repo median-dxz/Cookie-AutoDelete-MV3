@@ -91,12 +91,11 @@ const sampleTab: browser.Tabs.Tab = {
 describe('TabEvents', () => {
   beforeAll(() => {
     jest.mocked(global.browser.action.getTitle).mockResolvedValue('');
+    when(global.browser.cookies.getAll).defaultResolvedValue([]);
     when(global.browser.runtime.getManifest)
       .calledWith()
       .mockReturnValue({ version: '0.12.34' } as never);
-    // Use default value rather then asymmetric matchers.
-    // Otherwise, the matcher added later will overwrite it.
-    when(global.browser.cookies.getAll).defaultResolvedValue([]);
+    spyLib.getAllCookiesForDomain.mockResolvedValue([]);
     // Required so the actual cleaning functions being awaited won't run.
     when(spyAlarmEvents.scheduleActiveModeCleanup)
       .calledWith()
@@ -168,12 +167,6 @@ describe('TabEvents', () => {
         status: 'complete' as const,
         url: 'https://current.test',
       };
-      when(global.browser.cookies.getAll)
-        .calledWith({ domain: 'old.test', storeId: 'firefox-default' })
-        .mockResolvedValue([] as never);
-      when(global.browser.cookies.getAll)
-        .calledWith({ domain: 'current.test', storeId: 'firefox-default' })
-        .mockResolvedValue([] as never);
       when(global.browser.tabs.get).calledWith(4).mockResolvedValue(currentTab);
 
       const oldUpdate = TabEvents.onTabUpdate(4, completeChange, oldTab);
@@ -192,10 +185,10 @@ describe('TabEvents', () => {
         expect.arrayContaining(['https://old.test', 'https://current.test']),
       );
       expect(global.browser.action.setTitle).toHaveBeenCalledTimes(1);
-      expect(global.browser.cookies.getAll).toHaveBeenCalledWith({
-        domain: 'current.test',
-        storeId: 'firefox-default',
-      });
+      expect(spyLib.getAllCookiesForDomain).toHaveBeenCalledWith(
+        expect.anything(),
+        currentTab,
+      );
       expect(global.browser.action.setTitle).toHaveBeenCalledWith(
         expect.objectContaining({ tabId: 4 }),
       );
