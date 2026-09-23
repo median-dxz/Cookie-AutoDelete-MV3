@@ -65,34 +65,43 @@ If there are any bugs that only a certain browser has, and you have the fix for 
 
 #### Requirements
 
-- Latest version of Node.js
+- Node.js `^22.13.0` or `>=24`
+- npm 10 or later
 
 #### Development
 
-- `npm install` - Installs all dependencies
-- `npm run dev` - This will run the webpack watcher and automatically pack `/src/background.ts`, popup, and setting items and its dependencies to `/extension`
-- `npm run lint` - Runs the eslinter for JS files
-- `npm test` - Runs the test suite located in `/test`
-- `npm run build` - Builds the Chrome ZIP and unsigned Firefox ZIP test artifacts
+Install dependencies, then start the development server for the target browser:
+
+```shell
+npm install
+npm run dev:chrome
+# or for Firefox development
+npm run dev:firefox
+```
+
+Keep the development server running, then load the generated unpacked extension using the browser-specific steps below.
 
 #### Testing
 
-1. Run `npm install` (if you haven't already)
-2. Run `npm run dev`
-3. Load the extension in the browser
+- Chrome: load `/dist/chrome` as an unpacked extension from `chrome://extensions`.
+- Firefox: use [web-ext](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/#Testing_out_an_extension), or go to `about:debugging` and load `/dist/firefox/manifest.json`.
 
-- Firefox
-  - Easiest way would be to run the tool [web-ext](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/#Testing_out_an_extension)
-  - Another way is go into `about:debugging` and load `/extension/manifest.json`
+Run the unit tests and lint checks with:
 
-- Chrome
-  - In the extension tab, enable Developer Mode, then `load unpacked extension` and load the `/extension` folder
+```shell
+npm test
+npm run lint
+```
 
 #### Building
 
-1. Run `npm install` (if you haven't already)
-2. Run `npm run build`
-3. The build files should be in a new folder called `/builds`
+| Purpose                                | Chrome                   | Firefox                   |
+| -------------------------------------- | ------------------------ | ------------------------- |
+| Compile to an unpacked directory       | `npm run compile:chrome` | `npm run compile:firefox` |
+| Package an existing compiled directory | `npm run package:chrome` | `npm run package:firefox` |
+| Compile and package                    | `npm run build:chrome`   | `npm run build:firefox`   |
+
+`npm run build` builds both browsers. Unpacked builds are written to `/dist`; ZIP artifacts are written to `/builds`. Firefox ZIPs are unsigned test artifacts.
 
 ## Documentation
 
