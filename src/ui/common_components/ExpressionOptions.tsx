@@ -86,6 +86,7 @@ class ExpressionOptions extends React.Component<ExpressionOptionsProps> {
       const allCookies = await browser.cookies.getAll(
         returnOptionalCookieAPIAttributes(firefox, {
           storeId: this.toPublicStoreId(expression.storeId),
+          partitionKey: {},
         }),
       );
       if (exp.slice(1).startsWith('file:')) {
@@ -102,6 +103,7 @@ class ExpressionOptions extends React.Component<ExpressionOptionsProps> {
       const allCookies = await browser.cookies.getAll(
         returnOptionalCookieAPIAttributes(firefox, {
           storeId: this.toPublicStoreId(expression.storeId),
+          partitionKey: {},
         }),
       );
       const regExp = new RegExp(exp.slice(7)); // take out file://
@@ -117,6 +119,7 @@ class ExpressionOptions extends React.Component<ExpressionOptionsProps> {
         allCookies = await browser.cookies.getAll(
           returnOptionalCookieAPIAttributes(firefox, {
             storeId: this.toPublicStoreId(expression.storeId),
+            partitionKey: {},
           }),
         );
       } catch {
@@ -124,6 +127,7 @@ class ExpressionOptions extends React.Component<ExpressionOptionsProps> {
         cookies = await browser.cookies.getAll(
           returnOptionalCookieAPIAttributes(firefox, {
             domain: `${trimDotAndStar(exp)}${exp.endsWith('.') ? '.' : ''}`,
+            partitionKey: {},
             storeId: this.toPublicStoreId(expression.storeId),
           }),
         );

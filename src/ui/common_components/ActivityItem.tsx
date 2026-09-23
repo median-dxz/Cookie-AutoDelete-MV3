@@ -11,7 +11,10 @@ import {
   siteDataToBrowser,
   throwErrorNotification,
 } from '../../services/Libs';
-import type { ActivityLog } from '../../typings/Cleanup';
+import type {
+  ActivityLog,
+  CookiePropertiesCleanup,
+} from '../../typings/Cleanup';
 import { SettingID, SiteDataType } from '../../typings/Enums';
 import { useUIDispatch, useUISelector } from '../hooks';
 import ActivityDetailedSummary from './ActivityDetailedSummary';
@@ -21,6 +24,43 @@ export interface ActivityItemProps {
   log: ActivityLog;
   index: number;
 }
+
+/** Convert an Activity Log cookie back into Cookies API write details. */
+export const cookieToSetDetails = (
+  cookie: CookiePropertiesCleanup,
+  firefox: boolean,
+): browser.Cookies.SetDetailsType => {
+  const {
+    domain,
+    expirationDate,
+    firstPartyDomain,
+    hostOnly,
+    httpOnly,
+    name,
+    partitionKey,
+    preparedCookieDomain,
+    sameSite,
+    secure,
+    storeId,
+    value,
+  } = cookie;
+
+  // The browser already validated cookie prefixes when the cookie was read.
+  // __Host- and host-only cookies must be restored without a domain attribute.
+  return returnOptionalCookieAPIAttributes(firefox, {
+    firstPartyDomain,
+    domain: name.startsWith('__Host-') || hostOnly ? undefined : domain,
+    expirationDate,
+    httpOnly,
+    name,
+    ...(partitionKey && { partitionKey }),
+    sameSite,
+    secure,
+    storeId,
+    url: preparedCookieDomain,
+    value,
+  } satisfies browser.Cookies.SetDetailsType);
+};
 
 const createSummary = (cleanupObj: ActivityLog) => {
   const domainSet = new Set<string>();
@@ -102,39 +142,9 @@ function ActivityItem({ log, index }: ActivityItemProps) {
           );
           continue;
         }
-        const {
-          domain,
-          expirationDate,
-          firstPartyDomain,
-          hostOnly,
-          httpOnly,
-          name,
-          sameSite,
-          secure,
-          storeId,
-          value,
-        } = obj.cookie;
-        // Prefix fun: https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#Cookie_prefixes
-        // Since the cookies returned through web-extension API should already be validated,
-        // we are not doing any validations for __Secure- cookies.
-        // For cookies starting with __Secure-, secure attribute should already be true,
-        // and url should already start with https://
-        // Only modify cookie names starting with __Host- as it shouldn't have domain.
-        const cookieProperties = {
-          ...returnOptionalCookieAPIAttributes(firefox, {
-            firstPartyDomain,
-          }),
-          domain: name.startsWith('__Host-') || hostOnly ? undefined : domain,
-          expirationDate,
-          httpOnly,
-          name,
-          sameSite,
-          secure,
-          storeId,
-          url: obj.cookie.preparedCookieDomain,
-          value,
-        };
-        promiseArr.push(browser.cookies.set(cookieProperties));
+        promiseArr.push(
+          browser.cookies.set(cookieToSetDetails(obj.cookie, firefox)),
+        );
       }
     }
 

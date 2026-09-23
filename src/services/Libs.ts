@@ -14,7 +14,6 @@
 import ipaddr from 'ipaddr.js';
 import shortid from 'shortid';
 import browser from 'webextension-polyfill';
-import type { CookiePropertiesCleanup } from '../typings/Cleanup';
 import type {
   CacheMap,
   CADLogItem,
@@ -223,7 +222,8 @@ export const getAllCookiesForDomain = async (
     const allCookies = await browser.cookies.getAll(
       returnOptionalCookieAPIAttributes(firefox, {
         storeId: cookieStoreId,
-      }),
+        partitionKey: {},
+      } satisfies browser.Cookies.GetAllDetailsType),
     );
     const regExp = new RegExp(hostname.slice(7)); // take out 'file://'
     cadLog(
@@ -254,7 +254,7 @@ export const getAllCookiesForDomain = async (
         domain: hostname,
         firstPartyDomain: mainDomain,
         storeId: cookieStoreId,
-      }),
+      } satisfies browser.Cookies.GetAllDetailsType),
     );
     cookiesFPI.forEach((c) => cookies.push(c));
     // Try to get additional firstParty Isolation cookies if
@@ -278,7 +278,7 @@ export const getAllCookiesForDomain = async (
         domain: hostname,
         firstPartyDomain: `(${proto},${mainDomain})`,
         storeId: cookieStoreId,
-      }),
+      } satisfies browser.Cookies.GetAllDetailsType),
     );
     cookiesFPIUseSite.forEach((c) => cookies.push(c));
     // firstPartyDomain = (https,domain.com,2048)
@@ -300,7 +300,7 @@ export const getAllCookiesForDomain = async (
           domain: hostname,
           firstPartyDomain: `(${proto},${mainDomain},${siteURL.port})`,
           storeId: cookieStoreId,
-        }),
+        } satisfies browser.Cookies.GetAllDetailsType),
       );
       cookiesFPIUseSitePort.forEach((c) => cookies.push(c));
     }
@@ -320,7 +320,8 @@ export const getAllCookiesForDomain = async (
       returnOptionalCookieAPIAttributes(firefox, {
         domain: hostname,
         storeId: cookieStoreId,
-      }),
+        partitionKey: {},
+      } satisfies browser.Cookies.GetAllDetailsType),
     );
     cookiesDomain.forEach((c) => cookies.push(c));
   }
@@ -777,12 +778,19 @@ export const returnMatchedExpressionObject = (
 /**
  * Return optional attributes for the Cookie API calls
  */
-export const returnOptionalCookieAPIAttributes = (
+type OptionalCookieAPIAttributes<T extends object> = Omit<
+  T,
+  'firstPartyDomain'
+> & {
+  firstPartyDomain?: T extends { firstPartyDomain: infer Value }
+    ? Value
+    : undefined;
+};
+
+export const returnOptionalCookieAPIAttributes = <T extends object>(
   isFirefox: boolean,
-  cookieAPIAttributes: Partial<CookiePropertiesCleanup> & {
-    [x: string]: unknown;
-  },
-): Partial<CookiePropertiesCleanup> => {
+  cookieAPIAttributes: T,
+): OptionalCookieAPIAttributes<T> => {
   // Add optional firstPartyDomain attribute
   // To fetch firstPartyIsolation cookies even if FPI is off,
   // set firstPartyDomain to null.
@@ -796,15 +804,19 @@ export const returnOptionalCookieAPIAttributes = (
     return {
       ...cookieAPIAttributes,
       firstPartyDomain: undefined,
-    };
+    } as OptionalCookieAPIAttributes<T>;
   }
+
   // Only remove FPI Property if it is NOT firefox.
   if (!isFirefox) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { firstPartyDomain, ...rest } = cookieAPIAttributes;
+    const { firstPartyDomain, ...rest } = cookieAPIAttributes as T & {
+      firstPartyDomain?: unknown;
+    };
     return rest;
   }
-  return cookieAPIAttributes;
+
+  return cookieAPIAttributes as OptionalCookieAPIAttributes<T>;
 };
 
 /**

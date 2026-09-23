@@ -39,7 +39,6 @@ jspm_packages
 *.zip
 *.xpi
 report.html
-*Bundle.js
 *bundle.js
 bundles/
 builds/
@@ -48,3 +47,4 @@ dist/
 .directory
 
 .idea/
+.tmp/

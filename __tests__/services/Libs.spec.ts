@@ -464,7 +464,11 @@ describe('Library Functions', () => {
   describe('getAllCookiesForDomain()', () => {
     beforeAll(() => {
       when(global.browser.cookies.getAll)
-        .calledWith({ domain: expect.any(String), storeId: 'firefox-default' })
+        .calledWith({
+          domain: expect.any(String),
+          partitionKey: {},
+          storeId: 'firefox-default',
+        })
         .mockResolvedValue([] as never);
       when(global.browser.cookies.getAll)
         .calledWith({
@@ -474,13 +478,17 @@ describe('Library Functions', () => {
         })
         .mockResolvedValue([] as never);
       when(global.browser.cookies.getAll)
-        .calledWith({ storeId: 'firefox-default' })
+        .calledWith({ partitionKey: {}, storeId: 'firefox-default' })
         .mockResolvedValue([
           testCookie,
           { ...testCookie, domain: '', path: '/test/' },
         ] as never);
       when(global.browser.cookies.getAll)
-        .calledWith({ storeId: 'firefox-default', firstPartyDomain: undefined })
+        .calledWith({
+          firstPartyDomain: undefined,
+          partitionKey: {},
+          storeId: 'firefox-default',
+        })
         .mockResolvedValue([
           testCookie,
           { ...testCookie, domain: '', path: '/test/' },
@@ -489,7 +497,19 @@ describe('Library Functions', () => {
         .calledWith({ domain: '' })
         .mockResolvedValue([] as never);
       when(global.browser.cookies.getAll)
-        .calledWith({ domain: 'domain.com', storeId: 'firefox-default' })
+        .calledWith({
+          domain: 'domain.com',
+          partitionKey: {},
+          storeId: 'firefox-default',
+        })
+        .mockResolvedValue([testCookie] as never);
+      when(global.browser.cookies.getAll)
+        .calledWith({
+          domain: 'domain.com',
+          firstPartyDomain: undefined,
+          partitionKey: {},
+          storeId: 'firefox-default',
+        })
         .mockResolvedValue([testCookie] as never);
       when(global.browser.cookies.getAll)
         .calledWith({

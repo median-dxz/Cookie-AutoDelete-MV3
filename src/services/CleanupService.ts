@@ -60,11 +60,15 @@ export const prepareCookie = (
   cookie: browser.Cookies.Cookie,
   debug = false,
 ): CookiePropertiesCleanup => {
-  const cookieProperties = {
+  const cookieProperties: CookiePropertiesCleanup = {
     ...cookie,
     hostname: '',
     mainDomain: '',
     preparedCookieDomain: prepareCookieDomain(cookie),
+    ...(cookie.partitionKey?.topLevelSite && {
+      partitionDomain:
+        getHostname(cookie.partitionKey.topLevelSite) || undefined,
+    }),
   };
   if (cookieProperties.preparedCookieDomain.startsWith('file:')) {
     cookieProperties.hostname = cookieProperties.preparedCookieDomain;
@@ -84,6 +88,7 @@ export const prepareCookie = (
         preparedCookieDomain: cookieProperties.preparedCookieDomain,
         mainDomain: cookieProperties.mainDomain,
         hostname: cookieProperties.hostname,
+        partitionDomain: cookieProperties.partitionDomain,
       },
     },
     debug,
@@ -106,6 +111,7 @@ export const isSafeToClean = (
     expirationDate,
     firstPartyDomain,
     session,
+    partitionDomain,
   } = cookieProperties;
   const partialCookieInfo = {
     mainDomain,
@@ -115,6 +121,7 @@ export const isSafeToClean = (
     expirationDate,
     firstPartyDomain,
     session,
+    partitionDomain,
   };
   const { greyCleanup, openTabDomains, ignoreOpenTabs } = cleanupProperties;
   const openTabStatus = ignoreOpenTabs
@@ -128,11 +135,15 @@ export const isSafeToClean = (
     debug,
   );
 
-  // Tests if the main domain is open on that specific storeId/container
-  if (openTabDomains[storeId] && openTabDomains[storeId].includes(mainDomain)) {
+  // Tests if the main domain (or partition domain if partitioned) is open on that specific storeId/container
+  const activeTabDomain = partitionDomain || mainDomain;
+  if (
+    openTabDomains[storeId] &&
+    openTabDomains[storeId].includes(activeTabDomain)
+  ) {
     cadLog(
       {
-        msg: `CleanupService.isSafeToClean:  mainDomain found in openTabsDomain[${storeId}] - not cleaning.`,
+        msg: `CleanupService.isSafeToClean:  ${activeTabDomain} found in openTabsDomain[${storeId}] - not cleaning.`,
         x: { partialCookieInfo, openTabsInStoreId: openTabDomains[storeId] },
       },
       debug,
@@ -147,28 +158,34 @@ export const isSafeToClean = (
   }
 
   // Checks the list for the first available match
-  const matchedExpression = returnMatchedExpressionObject(
+  const hostMatchedExpression = returnMatchedExpressionObject(
     state,
     storeId,
     hostname,
   );
+  const partitionMatchedExpression = partitionDomain
+    ? returnMatchedExpressionObject(state, storeId, partitionDomain)
+    : undefined;
+  const allRequiredDomainsMatched = Boolean(
+    hostMatchedExpression && (!partitionDomain || partitionMatchedExpression),
+  );
 
   // Internal CAD Cookie Checks
   if (
-    matchedExpression &&
+    hostMatchedExpression &&
     cookieProperties.name === CADCOOKIENAME &&
-    (matchedExpression.listType === ListType.WHITE ||
-      (matchedExpression.listType === ListType.GREY &&
+    (hostMatchedExpression.listType === ListType.WHITE ||
+      (hostMatchedExpression.listType === ListType.GREY &&
         (greyCleanup ||
-          (matchedExpression.cleanSiteData &&
-            matchedExpression.cleanSiteData.length !== 0))))
+          (hostMatchedExpression.cleanSiteData &&
+            hostMatchedExpression.cleanSiteData.length !== 0))))
   ) {
     cadLog(
       {
         msg: 'CleanupService.isSafeToClean:  Internal CAD Cookie.  Removing Cookie to trigger browsingData cleanups.',
         x: {
           partialCookieInfo,
-          cleanSiteData: matchedExpression.cleanSiteData,
+          cleanSiteData: hostMatchedExpression.cleanSiteData,
         },
       },
       debug,
@@ -177,7 +194,7 @@ export const isSafeToClean = (
       cached: false,
       cleanCookie: true,
       cookie: cookieProperties,
-      expression: matchedExpression,
+      expression: hostMatchedExpression,
       openTabStatus,
       reason: greyCleanup
         ? ReasonClean.CADSiteDataCookieRestart
@@ -194,7 +211,7 @@ export const isSafeToClean = (
           msg: `CleanupService.isSafeToClean:  Cookie Expired since ${expirationDate}.  Date.now is ${now}`,
           x: {
             partialCookieInfo,
-            cleanSiteData: matchedExpression?.cleanSiteData,
+            cleanSiteData: hostMatchedExpression?.cleanSiteData,
           },
         },
         debug,
@@ -203,7 +220,7 @@ export const isSafeToClean = (
         cached: false,
         cleanCookie: true,
         cookie: cookieProperties,
-        expression: matchedExpression,
+        expression: hostMatchedExpression,
         openTabStatus,
         reason: greyCleanup
           ? ReasonClean.ExpiredCookieRestart
@@ -213,55 +230,67 @@ export const isSafeToClean = (
   }
 
   // Startup cleanup checks
-  if (greyCleanup && !matchedExpression) {
-    cadLog(
-      {
-        msg: 'CleanupService.isSafeToClean:  unmatched and greyCleanup.  Safe to Clean',
-        x: partialCookieInfo,
-      },
-      debug,
-    );
-    return {
-      cached: false,
-      cleanCookie: true,
-      cookie: cookieProperties,
-      openTabStatus,
-      reason: ReasonClean.StartupNoMatchedExpression,
-    };
-  }
+  if (greyCleanup) {
+    if (!allRequiredDomainsMatched) {
+      cadLog(
+        {
+          msg: 'CleanupService.isSafeToClean:  unmatched and greyCleanup.  Safe to Clean',
+          x: partialCookieInfo,
+        },
+        debug,
+      );
+      return {
+        cached: false,
+        cleanCookie: true,
+        cookie: cookieProperties,
+        expression: hostMatchedExpression || partitionMatchedExpression,
+        openTabStatus,
+        reason: ReasonClean.StartupNoMatchedExpression,
+      };
+    }
 
-  if (
-    greyCleanup &&
-    matchedExpression &&
-    matchedExpression.listType === ListType.GREY &&
-    // Tests the cleanAllCookies flag and if it doesn't include that name or if there is no cookieNames
-    (undefinedIsTrue(matchedExpression.cleanAllCookies) ||
-      (matchedExpression.cookieNames &&
-        !matchedExpression.cookieNames.includes(cookieProperties.name)))
-  ) {
-    cadLog(
-      {
-        msg: 'CleanupService.isSafeToClean:  greyCleanup - matching Expression and cookie name was unchecked.  Safe to Clean.',
-        x: { partialCookieInfo, matchedExpression },
-      },
-      debug,
-    );
-    return {
-      cached: false,
-      cleanCookie: true,
-      cookie: cookieProperties,
-      expression: matchedExpression,
-      openTabStatus,
-      reason: ReasonClean.StartupCleanupAndGreyList,
-    };
+    const hostIsGrey =
+      hostMatchedExpression?.listType === ListType.GREY &&
+      // Tests the cleanAllCookies flag and if it doesn't include that name or if there is no cookieNames
+      (undefinedIsTrue(hostMatchedExpression.cleanAllCookies) ||
+        (hostMatchedExpression.cookieNames &&
+          !hostMatchedExpression.cookieNames.includes(cookieProperties.name)));
+    const partitionIsGrey =
+      partitionMatchedExpression?.listType === ListType.GREY;
+
+    if (hostIsGrey || partitionIsGrey) {
+      cadLog(
+        {
+          msg: 'CleanupService.isSafeToClean:  greyCleanup - matching Expression and cookie name was unchecked or partition was grey.  Safe to Clean.',
+          x: {
+            partialCookieInfo,
+            hostMatchedExpression,
+            partitionMatchedExpression,
+          },
+        },
+        debug,
+      );
+      return {
+        cached: false,
+        cleanCookie: true,
+        cookie: cookieProperties,
+        expression: hostMatchedExpression,
+        openTabStatus,
+        reason: ReasonClean.StartupCleanupAndGreyList,
+      };
+    }
   }
 
   // Normal cleanup checks
-  if (!matchedExpression) {
+  if (!allRequiredDomainsMatched) {
     cadLog(
       {
         msg: 'CleanupService.isSafeToClean:  unmatched Expression.  Safe to Clean.',
-        x: partialCookieInfo,
+        x: {
+          partialCookieInfo,
+          hostMatchedExpression,
+          partitionMatchedExpression,
+        },
       },
       debug,
     );
@@ -269,20 +298,21 @@ export const isSafeToClean = (
       cached: false,
       cleanCookie: true,
       cookie: cookieProperties,
+      expression: hostMatchedExpression || partitionMatchedExpression,
       openTabStatus,
       reason: ReasonClean.NoMatchedExpression,
     };
   }
   if (
-    matchedExpression &&
-    !undefinedIsTrue(matchedExpression.cleanAllCookies) &&
-    matchedExpression.cookieNames &&
-    !matchedExpression.cookieNames.includes(cookieProperties.name)
+    hostMatchedExpression &&
+    !undefinedIsTrue(hostMatchedExpression.cleanAllCookies) &&
+    hostMatchedExpression.cookieNames &&
+    !hostMatchedExpression.cookieNames.includes(cookieProperties.name)
   ) {
     cadLog(
       {
         msg: 'CleanupService.isSafeToClean:  matched Expression but unchecked cookie name.  Safe to Clean.',
-        x: { partialCookieInfo, matchedExpression },
+        x: { partialCookieInfo, hostMatchedExpression },
       },
       debug,
     );
@@ -290,7 +320,7 @@ export const isSafeToClean = (
       cached: false,
       cleanCookie: true,
       cookie: cookieProperties,
-      expression: matchedExpression,
+      expression: hostMatchedExpression,
       openTabStatus,
       reason: ReasonClean.MatchedExpressionButNoCookieName,
     };
@@ -298,7 +328,11 @@ export const isSafeToClean = (
   cadLog(
     {
       msg: 'CleanupService.isSafeToClean:  Matched Expression and cookie name.  Cookie stays!',
-      x: { partialCookieInfo, matchedExpression },
+      x: {
+        partialCookieInfo,
+        hostMatchedExpression,
+        partitionMatchedExpression,
+      },
     },
     debug,
   );
@@ -306,7 +340,7 @@ export const isSafeToClean = (
     cached: false,
     cleanCookie: false,
     cookie: cookieProperties,
-    expression: matchedExpression,
+    expression: hostMatchedExpression,
     openTabStatus,
     reason: ReasonKeep.MatchedExpression,
   };
@@ -322,16 +356,16 @@ export const cleanCookies = async (
   const firefox = isFirefox(state);
   markedForDeletion.forEach((obj) => {
     const cookieProperties = obj.cookie;
-    const cookieAPIProperties = returnOptionalCookieAPIAttributes(firefox, {
+    const cookieRemove = returnOptionalCookieAPIAttributes(firefox, {
       firstPartyDomain: cookieProperties.firstPartyDomain,
       storeId: cookieProperties.storeId,
-    });
-    const cookieRemove = {
-      ...cookieAPIProperties,
       name: cookieProperties.name,
       url: cookieProperties.preparedCookieDomain,
-    };
-    // url: "http://domain.com" + cookies[i].path
+      ...(cookieProperties.partitionKey && {
+        partitionKey: cookieProperties.partitionKey,
+      }),
+    } satisfies browser.Cookies.RemoveDetailsType);
+
     cadLog(
       {
         msg: 'CleanupService.cleanCookies: Cookie being removed through browser.cookies.remove via Promises:',
@@ -342,9 +376,20 @@ export const cleanCookies = async (
     const promise = browser.cookies.remove(cookieRemove);
     promiseArr.push(promise);
   });
-  await Promise.all(promiseArr).catch((e) => {
-    throw e;
-  });
+
+  const results = await Promise.allSettled(promiseArr);
+  const failures = results.filter(
+    (result): result is PromiseRejectedResult => result.status === 'rejected',
+  );
+
+  if (failures.length === 1) {
+    throw failures[0].reason;
+  } else if (failures.length > 0) {
+    throw new AggregateError(
+      failures.map((failure) => failure.reason),
+      'Failed to remove one or more cookies.',
+    );
+  }
 };
 
 // Cleanup of all cookies for domain.
@@ -358,7 +403,8 @@ export const clearCookiesForThisDomain = createAsyncThunk(
       returnOptionalCookieAPIAttributes(firefox, {
         domain: hostname,
         storeId: tab.cookieStoreId,
-      }),
+        partitionKey: {},
+      } satisfies browser.Cookies.GetAllDetailsType),
     );
     // Filter out our own CAD cookie that cleans up other Browsing Data
     const cookies = getCookies.filter((c) => c.name !== CADCOOKIENAME);
@@ -372,16 +418,10 @@ export const clearCookiesForThisDomain = createAsyncThunk(
             name: cookie.name,
             storeId: cookie.storeId,
             url: prepareCookieDomain(cookie),
-          }) as {
-            // This explicit type is required as cookies.remove requires these two
-            // parameters, but url is not defined in cookies.Cookie as it is made
-            // up of cookie.domain + cookie.path, and neither required parameters
-            // can take 'undefined'.  returnOptionalCookieAPIAttributes has the
-            // parameters set to Partial<CookiePropertiesCleanup>, which appends
-            // '| undefined' to all parameters.
-            name: string;
-            url: string;
-          },
+            ...(cookie.partitionKey && {
+              partitionKey: cookie.partitionKey,
+            }),
+          } satisfies browser.Cookies.RemoveDetailsType),
         );
         if (r) cookieDeletedCount += 1;
       }
@@ -949,7 +989,8 @@ export const cleanCookiesOperation = async (
       cookies = await browser.cookies.getAll(
         returnOptionalCookieAPIAttributes(firefox, {
           storeId: id,
-        }),
+          partitionKey: {},
+        } satisfies browser.Cookies.GetAllDetailsType),
       );
     } catch (e: unknown) {
       if (e instanceof Error) {
