@@ -3,22 +3,28 @@
     {
       "version": "4.0.0",
       "notes": [
-        "Version: Begin the 4.0 release series for Cookie AutoDelete Next Edition."
+        "Version:  Begin the 4.0 release series for Cookie AutoDelete Next Edition",
+        "Updated:  Remove unused activeTab permission and set minimum Chrome baseline to 119",
+        "Added:  Full support for Partitioned Cookies",
+        "Fixed:  Coordinate cleanup markers and toolbar updates per tab to eliminate badge flickering and race conditions",
+        "Fixed:  Ensure short delay cleanups and alarm events persist across Service Worker deactivation",
+        "Fixed:  Preserve tab-to-domain mappings across Service Worker restarts, ensuring closed tabs trigger cleanup reliably",
+        "Fixed:  Preserve settings and expressions during throttled storage writes to prevent data loss on worker sleep",
+        "Fixed:  Correctly display action title and toolbar badge when cookie count is zero"
       ]
     },
     {
       "version": "3.8.3",
       "notes": [
-        "Updated:  Use Redux Toolkit",
+        "Updated:  Migrate to Manifest V3",
         "Toolchain:  Replace Webpack with CRXJS, improve build process",
-        "Updated:  Upgrade to Bootstrap 5",
-        "Updated:  Update other dependencies",
+        "Updated:  Register event listeners synchronously in the background script",
+        "Updated:  Use Redux Toolkit replace Redux and React-Redux",
+        "Updated:  Upgrade to Bootstrap 5 and update other dependencies",
         "Fixed:  Check tabId on TabUpdated event",
         "Fixed:  Check menu item availability before changing active mode",
-        "Updated:  Migrate to Manifest V3",
         "Fixed:  Ensure the timeout is now always triggered in the Service Worker environment",
-        "Fixed:  Fix duplicate menu creation errors",
-        "Updated:  Register event listeners synchronously in the background script"
+        "Fixed:  Fix duplicate menu creation errors"
       ]
     },
     {
