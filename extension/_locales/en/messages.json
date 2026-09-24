@@ -314,8 +314,8 @@
     "description": "A timestamp will be appended to the filename on export."
   },
   "extensionDescription": {
-    "message": "Control your cookies! Automatically delete unwanted cookies from your closed tabs while keeping the ones you want.",
-    "description": "Control your cookies! Automatically delete unwanted cookies from your closed tabs while keeping the ones you want."
+    "message": "Control your cookies! Automatically delete unwanted cookies from closed tabs while keeping the ones you want.",
+    "description": "Control your cookies! Automatically delete unwanted cookies from closed tabs while keeping the ones you want."
   },
   "extensionName": {
     "message": "Cookie AutoDelete Next Edition",
