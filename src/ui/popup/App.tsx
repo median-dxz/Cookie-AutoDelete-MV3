@@ -28,6 +28,7 @@ import { FilterOptions, ListType, SettingID } from '../../typings/Enums';
 import ActivityTable from '../common_components/ActivityTable';
 import IconButton from '../common_components/IconButton';
 import CleanCollapseGroup from './components/CleanCollapseGroup';
+import ScrubButton from './components/ScrubButton';
 import FilteredExpression from './components/FilteredExpression';
 import { animateFlash } from './popupLib';
 import type { CleanupProperties } from '../../typings/Cleanup';
@@ -277,6 +278,7 @@ class App extends Component<PopupAppComponentProps, InitialState> {
                 </span>
               </button>
             </div>
+            <ScrubButton hostname={hostname || ''} tab={tab} />
             <IconButton
               iconName="cog"
               className="btn-info m-1"
