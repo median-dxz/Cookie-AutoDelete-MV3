@@ -145,7 +145,7 @@ No. All executable code is included in the extension package. Documentation and 
 | --- | --- |
 | Extension ID | `ohcmnioddbjkcobbpdeomphnimindmgh` |
 | Store URL (Standard) | https://chromewebstore.google.com/detail/cookie-autodelete-next-ed/ohcmnioddbjkcobbpdeomphnimindmgh |
-| Store URL (Canonical) | https://chromewebstore.google.com/detail/cookie-autodelete-next-edition/ohcmnioddbjkcobbpdeomphnimindmgh |
+| Store URL (Canonical) | https://chromewebstore.google.com/detail/cookie-autodelete-next-edition/ohcmnioddbjkcobbpdeomphnimindmgh or https://chromewebstore.google.com/detail/ohcmnioddbjkcobbpdeomphnimindmgh |
 | Status | Published (Unlisted) |
 | Visibility | Unlisted |
 | Regions | All regions |
