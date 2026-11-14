@@ -62,11 +62,6 @@ export const enum ListType {
   GREY = 'GREY',
 }
 
-export const enum EventListenerAction {
-  ADD = 'ADD',
-  REMOVE = 'REMOVE',
-}
-
 /**
  * This only works if browserDetect function doesn't change its return method/string.
  */

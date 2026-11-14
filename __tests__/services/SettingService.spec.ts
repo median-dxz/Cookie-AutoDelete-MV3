@@ -29,12 +29,6 @@ import { initialState } from '../__mock__/initialState';
 const spyBrowserActions = global.generateSpies(BrowserActionService);
 const spyContextMenuEvents = global.generateSpies(ContextMenuEvents);
 
-class TestContextualIdentities extends ContextualIdentitiesEvents {
-  public static isInit(): boolean {
-    return ContextualIdentitiesEvents.isInitialized;
-  }
-}
-
 const store: Store<State> = configureWrapStore(initialState);
 StoreUser.init(store);
 
@@ -123,17 +117,33 @@ describe('SettingService', () => {
       await SettingService.onSettingsChange();
       expect(TestSettingService.getIsInitialized()).toEqual(true);
     });
-    it('should initialize ContextualIdentities if recently enabled', async () => {
-      expect(TestContextualIdentities.isInit()).toEqual(false);
+    it('detaches listeners on disable and registers them again on re-enable', async () => {
+      const { onRemoved } = global.browser.contextualIdentities;
+      SettingService.init();
       TestStore.changeSetting(SettingID.CONTEXTUAL_IDENTITIES, true);
       await SettingService.onSettingsChange();
-      expect(TestContextualIdentities.isInit()).toEqual(true);
-    });
-    it('should de-init ContextualIdentities if recently disabled', async () => {
-      expect(TestContextualIdentities.isInit()).toEqual(true);
+      expect(onRemoved.addListener).toHaveBeenCalledWith(
+        ContextualIdentitiesEvents.onContainerRemoved,
+      );
+
       TestStore.changeSetting(SettingID.CONTEXTUAL_IDENTITIES, false);
       await SettingService.onSettingsChange();
-      expect(TestContextualIdentities.isInit()).toEqual(false);
+      expect(onRemoved.removeListener).toHaveBeenCalledWith(
+        ContextualIdentitiesEvents.onContainerRemoved,
+      );
+
+      TestStore.changeSetting(SettingID.CONTEXTUAL_IDENTITIES, true);
+      await SettingService.onSettingsChange();
+      const removalRegistrations = jest
+        .mocked(onRemoved.addListener)
+        .mock.calls.filter(
+          ([listener]) =>
+            listener === ContextualIdentitiesEvents.onContainerRemoved,
+        );
+      expect(removalRegistrations).toHaveLength(2);
+
+      TestStore.changeSetting(SettingID.CONTEXTUAL_IDENTITIES, false);
+      await SettingService.onSettingsChange();
     });
     it('should not clean localstorage if migrating from old setting', async () => {
       TestStore.changeSetting(SettingID.CLEANUP_LOCALSTORAGE_OLD, true);

@@ -422,6 +422,5 @@ browser.cookies.onChanged.addListener(
   StoreUser.withStoreReady(() => CookieEvents.onCookieChanged),
 );
 
-if (browser.contextualIdentities) {
-  ContextualIdentitiesEvents.init();
-}
+// Register synchronously so container events can wake the Firefox background.
+ContextualIdentitiesEvents.init();

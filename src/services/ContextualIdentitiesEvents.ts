@@ -13,148 +13,134 @@
 
 import browser from 'webextension-polyfill';
 
-import { EventListenerAction, SettingID } from '../typings/Enums';
-import { cadLog, eventListenerActions, getSetting } from './Libs';
+import { SettingID } from '../typings/Enums';
+import { getSetting } from './Libs';
 import StoreUser from './StoreUser';
 import { addCache } from '../redux/CacheSlice';
 import { removeList } from '../redux/ListsSlice';
 
 export default class ContextualIdentitiesEvents extends StoreUser {
   public static init(): void {
-    if (
-      !browser.contextualIdentities ||
-      (!getSetting(
-        StoreUser.store.getState(),
-        SettingID.CONTEXTUAL_IDENTITIES,
-      ) as boolean) ||
-      ContextualIdentitiesEvents.isInitialized
-    )
-      return;
+    const events = browser.contextualIdentities;
+    if (!events || ContextualIdentitiesEvents.isInitialized) return;
+
+    events.onCreated.addListener(ContextualIdentitiesEvents.onContainerCreated);
+    events.onRemoved.addListener(ContextualIdentitiesEvents.onContainerRemoved);
+    events.onUpdated.addListener(ContextualIdentitiesEvents.onContainerUpdated);
     ContextualIdentitiesEvents.isInitialized = true;
-    eventListenerActions(
-      browser.contextualIdentities.onCreated,
-      ContextualIdentitiesEvents.onContainerCreated,
-      EventListenerAction.ADD,
-    );
-    eventListenerActions(
-      browser.contextualIdentities.onRemoved,
-      ContextualIdentitiesEvents.onContainerRemoved,
-      EventListenerAction.ADD,
-    );
-    eventListenerActions(
-      browser.contextualIdentities.onUpdated,
-      ContextualIdentitiesEvents.onContainerUpdated,
-      EventListenerAction.ADD,
-    );
-    cadLog(
-      {
-        msg: `ContextualIdentitiesEvents.deInit:  Container Events have been added.`,
-      },
-      getSetting(StoreUser.store.getState(), SettingID.DEBUG_MODE) as boolean,
-    );
   }
 
-  /**
-   * This removes all related event listeners and attempts to 'un-define' existing containers.
-   */
   public static async deInit(): Promise<void> {
     if (!ContextualIdentitiesEvents.isInitialized) return;
-    eventListenerActions(
-      browser.contextualIdentities.onCreated,
+
+    const events = browser.contextualIdentities;
+    events.onCreated.removeListener(
       ContextualIdentitiesEvents.onContainerCreated,
-      EventListenerAction.REMOVE,
     );
-    eventListenerActions(
-      browser.contextualIdentities.onRemoved,
+    events.onRemoved.removeListener(
       ContextualIdentitiesEvents.onContainerRemoved,
-      EventListenerAction.REMOVE,
     );
-    eventListenerActions(
-      browser.contextualIdentities.onUpdated,
+    events.onUpdated.removeListener(
       ContextualIdentitiesEvents.onContainerUpdated,
-      EventListenerAction.REMOVE,
     );
     ContextualIdentitiesEvents.isInitialized = false;
-    const existingContainers = await browser.contextualIdentities.query({});
+
+    const existingContainers = await events.query({});
+    // The user may have re-enabled container mode while the query was pending.
+    if (ContextualIdentitiesEvents.isInitialized) return;
     for (const ci of existingContainers) {
       StoreUser.store.dispatch(
-        addCache({
-          key: ci.cookieStoreId,
-          value: undefined,
-        }),
+        addCache({ key: ci.cookieStoreId, value: undefined }),
       );
     }
-    cadLog(
-      {
-        msg: `ContextualIdentitiesEvents.deInit:  Container Events have been removed.`,
-      },
-      getSetting(StoreUser.store.getState(), SettingID.DEBUG_MODE) as boolean,
-    );
+  }
+
+  private static withContainerMode<T>(handle: (changeInfo: T) => void) {
+    return StoreUser.withStoreReady<
+      [T],
+      Promise<void>,
+      (store: typeof StoreUser.store) => (changeInfo: T) => Promise<void>
+    >((store) => async (changeInfo) => {
+      if (!getSetting(store.getState(), SettingID.CONTEXTUAL_IDENTITIES)) {
+        await ContextualIdentitiesEvents.deInit();
+        return;
+      }
+      handle(changeInfo);
+    });
   }
 
   /**
    * This will add the new container mapping to the cache.
    * @param changeInfo The ContextualIdentity object that was created.
    */
-  public static onContainerCreated(
-    changeInfo: browser.ContextualIdentities.OnCreatedChangeInfoType,
-  ): void {
-    StoreUser.store.dispatch(
-      addCache({
-        key: changeInfo.contextualIdentity.cookieStoreId,
-        value: changeInfo.contextualIdentity.name,
-      }),
+  public static readonly onContainerCreated =
+    ContextualIdentitiesEvents.withContainerMode(
+      (
+        changeInfo: browser.ContextualIdentities.OnCreatedChangeInfoType,
+      ): void => {
+        StoreUser.store.dispatch(
+          addCache({
+            key: changeInfo.contextualIdentity.cookieStoreId,
+            value: changeInfo.contextualIdentity.name,
+          }),
+        );
+      },
     );
-  }
 
   /**
    * This should remove the related cookieStoreId/container when removed in Firefox.
    * @param changeInfo The ContextualIdentity Object that was removed.
    */
-  public static onContainerRemoved(
-    changeInfo: browser.ContextualIdentities.OnRemovedChangeInfoType,
-  ): void {
-    // Only remove expression list id if setting is enabled.
-    if (
-      getSetting(
-        StoreUser.store.getState(),
-        SettingID.CONTEXTUAL_IDENTITIES_AUTOREMOVE,
-      )
-    ) {
-      StoreUser.store.dispatch(
-        removeList(changeInfo.contextualIdentity.cookieStoreId),
-      );
-    }
+  public static readonly onContainerRemoved =
+    ContextualIdentitiesEvents.withContainerMode(
+      (
+        changeInfo: browser.ContextualIdentities.OnRemovedChangeInfoType,
+      ): void => {
+        // Only remove expression list id if setting is enabled.
+        if (
+          getSetting(
+            StoreUser.store.getState(),
+            SettingID.CONTEXTUAL_IDENTITIES_AUTOREMOVE,
+          )
+        ) {
+          StoreUser.store.dispatch(
+            removeList(changeInfo.contextualIdentity.cookieStoreId),
+          );
+        }
 
-    StoreUser.store.dispatch(
-      addCache({
-        key: changeInfo.contextualIdentity.cookieStoreId,
-        value: undefined,
-      }),
+        StoreUser.store.dispatch(
+          addCache({
+            key: changeInfo.contextualIdentity.cookieStoreId,
+            value: undefined,
+          }),
+        );
+      },
     );
-  }
 
   /**
    * This should update the cache if a container was updated in Firefox.
    * @param changeInfo The ContextualIdentity Object that was updated.
    */
-  public static onContainerUpdated(
-    changeInfo: browser.ContextualIdentities.OnUpdatedChangeInfoType,
-  ): void {
-    const cache = StoreUser.store.getState().cache;
-    if (
-      cache[changeInfo.contextualIdentity.cookieStoreId] &&
-      cache[changeInfo.contextualIdentity.cookieStoreId] !==
-        changeInfo.contextualIdentity.name
-    ) {
-      StoreUser.store.dispatch(
-        addCache({
-          key: changeInfo.contextualIdentity.cookieStoreId,
-          value: changeInfo.contextualIdentity.name,
-        }),
-      );
-    }
-  }
+  public static readonly onContainerUpdated =
+    ContextualIdentitiesEvents.withContainerMode(
+      (
+        changeInfo: browser.ContextualIdentities.OnUpdatedChangeInfoType,
+      ): void => {
+        const cache = StoreUser.store.getState().cache;
+        if (
+          cache[changeInfo.contextualIdentity.cookieStoreId] &&
+          cache[changeInfo.contextualIdentity.cookieStoreId] !==
+            changeInfo.contextualIdentity.name
+        ) {
+          StoreUser.store.dispatch(
+            addCache({
+              key: changeInfo.contextualIdentity.cookieStoreId,
+              value: changeInfo.contextualIdentity.name,
+            }),
+          );
+        }
+      },
+    );
 
   // Map the cookieStoreId to their actual names and store in cache
   public static async cacheCookieStoreIdNames(): Promise<void> {
