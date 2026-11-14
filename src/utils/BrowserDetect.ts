@@ -21,20 +21,15 @@ export function browserDetect(): BrowserName {
     return browserDetect.prototype._cachedResult;
   }
 
-  // let isIE = false;
-  // let isEdge = false;
-
   const detectByUserAgent = () => {
     if (navigator.userAgent.indexOf('Chrome') !== -1) {
       browserDetect.prototype._cachedResult = 'Chrome';
-    } else if (navigator.userAgent.indexOf('Safari') !== -1) {
-      browserDetect.prototype._cachedResult = 'Safari';
     } else if (navigator.userAgent.indexOf('Firefox') !== -1) {
       browserDetect.prototype._cachedResult = 'Firefox';
+    } else if (navigator.userAgent.indexOf('Safari') !== -1) {
+      browserDetect.prototype._cachedResult = 'Safari';
     } else if (navigator.userAgent.indexOf('Edge') !== -1) {
       browserDetect.prototype._cachedResult = 'Edge';
-    } else if (navigator.userAgent.indexOf('MSIE') !== -1) {
-      browserDetect.prototype._cachedResult = 'IE';
     } else {
       browserDetect.prototype._cachedResult = 'UnknownBrowser';
     }
@@ -71,11 +66,10 @@ export function browserDetect(): BrowserName {
 
   // Detect Internet Explorer (version 6-11)
   // isIE = /*@cc_on!@*/ false || !!document.documentMode;
-  isIE = false;
+  const isIE = false;
 
   // Detect Edge browser (version 20+)
-
-  isEdge = !isIE && !!window.StyleMedia;
+  const isEdge = !isIE && !!window.StyleMedia;
 
   // Detect Chrome browser (version 1 - 79)
   const isChrome =
