@@ -353,7 +353,7 @@ export const cleanCookies = async (
 ): Promise<void> => {
   const promiseArr: Promise<browser.Cookies.RemoveCallbackDetailsType | null>[] =
     [];
-  const firefox = isFirefox(state);
+  const firefox = isFirefox(state.cache);
   markedForDeletion.forEach((obj) => {
     const cookieProperties = obj.cookie;
     const cookieRemove = returnOptionalCookieAPIAttributes(firefox, {
