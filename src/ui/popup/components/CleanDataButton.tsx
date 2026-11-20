@@ -12,15 +12,9 @@
  */
 import * as React from 'react';
 import browser from 'webextension-polyfill';
-import {
-  clearCookiesForThisDomain,
-  clearLocalStorageForThisDomain,
-  clearSiteDataForThisDomain,
-} from '../../../services/CleanupService';
 import type { SiteDataType } from '../../../typings/Enums';
-import { useUIDispatch } from '../../hooks';
 import { animateFlash } from '../popupLib';
-import { useCallback } from 'react';
+import { useCleanSiteData } from './useCleanSiteData';
 
 interface OwnProps {
   altColor?: boolean;
@@ -46,38 +40,7 @@ const CleanDataButton: React.FunctionComponent<OwnProps> = (props) => {
     ...nativeProps
   } = props;
 
-  const dispath = useUIDispatch();
-
-  const cleanSiteDataUI = useCallback(
-    async (
-      siteData: SiteDataType | 'All',
-      hostname: string,
-      tab?: browser.Tabs.Tab,
-    ): Promise<boolean> => {
-      if (!hostname) return false;
-
-      let result = await dispath(
-        clearSiteDataForThisDomain({ siteData, hostname }),
-      ).unwrap();
-
-      if (siteData === 'All') {
-        if (!tab) return false;
-
-        const cookieSuccess = await dispath(
-          clearCookiesForThisDomain(tab),
-        ).unwrap();
-
-        const localStorageSuccess = await dispath(
-          clearLocalStorageForThisDomain(tab),
-        ).unwrap();
-
-        result = result || cookieSuccess || localStorageSuccess;
-      }
-      
-      return result;
-    },
-    [dispath],
-  );
+  const cleanSiteDataUI = useCleanSiteData();
 
   return (
     <button

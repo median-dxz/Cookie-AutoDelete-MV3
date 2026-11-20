@@ -1,0 +1,115 @@
+diff --git a/src/ui/popup/App.tsx b/src/ui/popup/App.tsx
+index 4d5a7f9..5a540cf 100644
+--- a/src/ui/popup/App.tsx
++++ b/src/ui/popup/App.tsx
+@@ -10,7 +10,7 @@
+  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+  * SOFTWARE.
+  */
+-import { Component } from 'react';
++import { Component, Fragment } from 'react';
+ import { connect } from 'react-redux';
+ import browser from 'webextension-polyfill';
+ import {
+@@ -292,8 +292,19 @@ class App extends Component<PopupAppComponentProps, InitialState> {
+         </div>
+         <CleanCollapseGroup hostname={hostname || ''} tab={tab} />
+ 
+-        <div className="row mt-2 mx-auto align-items-center">
+-          <div className="col d-flex align-items-center">
++        <div
++          className="mt-2"
++          style={{
++            alignItems: 'center',
++            display: 'grid',
++            gridTemplateColumns: '1fr auto auto',
++            rowGap: '0.5rem',
++          }}
++        >
++          <div
++            className="d-flex align-items-center"
++            style={{ minWidth: 0, paddingLeft: '0.75rem' }}
++          >
+             {tab.favIconUrl && !tab.favIconUrl.startsWith('chrome:') && (
+               <img
+                 alt={'favIcon'}
+@@ -318,11 +329,14 @@ class App extends Component<PopupAppComponentProps, InitialState> {
+               }`}
+             </span>
+           </div>
++          {/* Same grid columns as the Greylist/Whitelist buttons below, so the
++              cookie count lines up with the right edge of the Greylist button
++              and Scrub sits exactly above the Whitelist button. */}
+           <div
+-            className="col-3"
+             style={{
+               fontSize: '1.1em',
+-              textAlign: 'center',
++              textAlign: 'right',
++              whiteSpace: 'nowrap',
+             }}
+           >
+             <span id="CADCookieText">
+@@ -338,15 +352,15 @@ class App extends Component<PopupAppComponentProps, InitialState> {
+               {this.state.cookieCount}
+             </span>
+           </div>
+-          <div className="col-auto">
++          <div style={{ marginLeft: '0.25rem' }}>
+             <ScrubButton hostname={hostname || ''} tab={tab} />
+           </div>
+-        </div>
+ 
+-        {addableHostnames.map((addableHostname) => (
+-          <div key={addableHostname} className="row align-items-center mt-2">
+-            <div className="col">{addableHostname}</div>
+-            <div className="btn-group col flex-grow-0 gap-1" role="group">
++          {addableHostnames.map((addableHostname) => (
++            <Fragment key={addableHostname}>
++              <div style={{ minWidth: 0, paddingLeft: '0.75rem' }}>
++                {addableHostname}
++              </div>
+               <IconButton
+                 className="btn btn-secondary"
+                 onClick={() => {
+@@ -360,9 +374,9 @@ class App extends Component<PopupAppComponentProps, InitialState> {
+                 title={browser.i18n.getMessage('toGreyListText')}
+                 text={browser.i18n.getMessage('greyListWordText')}
+               />
+-
+               <IconButton
+                 className="btn btn-primary"
++                styleReact={{ marginLeft: '0.25rem' }}
+                 onClick={() => {
+                   onNewExpression({
+                     expression: localFileToRegex(addableHostname),
+@@ -374,9 +388,9 @@ class App extends Component<PopupAppComponentProps, InitialState> {
+                 title={browser.i18n.getMessage('toWhiteListText')}
+                 text={browser.i18n.getMessage('whiteListWordText')}
+               />
+-            </div>
+-          </div>
+-        ))}
++            </Fragment>
++          ))}
++        </div>
+ 
+         <div className="row mt-2 mx-0">
+           <FilteredExpression url={hostname} storeId={storeId} />
+diff --git a/src/ui/popup/components/ScrubButton.tsx b/src/ui/popup/components/ScrubButton.tsx
+index 235f630..0c740cd 100644
+--- a/src/ui/popup/components/ScrubButton.tsx
++++ b/src/ui/popup/components/ScrubButton.tsx
+@@ -30,10 +30,10 @@ const ScrubButton: React.FunctionComponent<OwnProps> = ({ hostname, tab }) => {
+   const wrapperRef = useRef<HTMLDivElement>(null);
+ 
+   return (
+-    <div ref={wrapperRef} className="d-inline-block">
++    <div ref={wrapperRef} className="d-block">
+       <IconButton
+         iconName="broom"
+-        className="btn-warning"
++        className="btn-warning w-100"
+         type="button"
+         onClick={async () => {
+           const result = await cleanSiteData('All', hostname, tab);

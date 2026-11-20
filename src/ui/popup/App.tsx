@@ -10,7 +10,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-import { Component } from 'react';
+import { Component, Fragment } from 'react';
 import { connect } from 'react-redux';
 import browser from 'webextension-polyfill';
 import {
@@ -28,6 +28,7 @@ import { FilterOptions, ListType, SettingID } from '../../typings/Enums';
 import ActivityTable from '../common_components/ActivityTable';
 import IconButton from '../common_components/IconButton';
 import CleanCollapseGroup from './components/CleanCollapseGroup';
+import ScrubButton from './components/ScrubButton';
 import FilteredExpression from './components/FilteredExpression';
 import { animateFlash } from './popupLib';
 import type { CleanupProperties } from '../../typings/Cleanup';
@@ -291,8 +292,19 @@ class App extends Component<PopupAppComponentProps, InitialState> {
         </div>
         <CleanCollapseGroup hostname={hostname || ''} tab={tab} />
 
-        <div className="row mt-2 mx-auto align-items-center">
-          <div className="col d-flex align-items-center">
+        <div
+          className="mt-2"
+          style={{
+            alignItems: 'center',
+            display: 'grid',
+            gridTemplateColumns: '1fr auto auto',
+            rowGap: '0.5rem',
+          }}
+        >
+          <div
+            className="d-flex align-items-center"
+            style={{ minWidth: 0, paddingLeft: '0.75rem' }}
+          >
             {tab.favIconUrl && !tab.favIconUrl.startsWith('chrome:') && (
               <img
                 alt={'favIcon'}
@@ -317,11 +329,14 @@ class App extends Component<PopupAppComponentProps, InitialState> {
               }`}
             </span>
           </div>
+          {/* Same grid columns as the Greylist/Whitelist buttons below, so the
+              cookie count lines up with the right edge of the Greylist button
+              and Scrub sits exactly above the Whitelist button. */}
           <div
-            className="col-3"
             style={{
               fontSize: '1.1em',
-              textAlign: 'center',
+              textAlign: 'right',
+              whiteSpace: 'nowrap',
             }}
           >
             <span id="CADCookieText">
@@ -337,12 +352,15 @@ class App extends Component<PopupAppComponentProps, InitialState> {
               {this.state.cookieCount}
             </span>
           </div>
-        </div>
+          <div style={{ marginLeft: '0.25rem' }}>
+            <ScrubButton hostname={hostname || ''} tab={tab} />
+          </div>
 
-        {addableHostnames.map((addableHostname) => (
-          <div key={addableHostname} className="row align-items-center mt-2">
-            <div className="col">{addableHostname}</div>
-            <div className="btn-group col flex-grow-0 gap-1" role="group">
+          {addableHostnames.map((addableHostname) => (
+            <Fragment key={addableHostname}>
+              <div style={{ minWidth: 0, paddingLeft: '0.75rem' }}>
+                {addableHostname}
+              </div>
               <IconButton
                 className="btn btn-secondary"
                 onClick={() => {
@@ -356,9 +374,9 @@ class App extends Component<PopupAppComponentProps, InitialState> {
                 title={browser.i18n.getMessage('toGreyListText')}
                 text={browser.i18n.getMessage('greyListWordText')}
               />
-
               <IconButton
                 className="btn btn-primary"
+                styleReact={{ marginLeft: '0.25rem' }}
                 onClick={() => {
                   onNewExpression({
                     expression: localFileToRegex(addableHostname),
@@ -370,9 +388,9 @@ class App extends Component<PopupAppComponentProps, InitialState> {
                 title={browser.i18n.getMessage('toWhiteListText')}
                 text={browser.i18n.getMessage('whiteListWordText')}
               />
-            </div>
-          </div>
-        ))}
+            </Fragment>
+          ))}
+        </div>
 
         <div className="row mt-2 mx-0">
           <FilteredExpression url={hostname} storeId={storeId} />
