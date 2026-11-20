@@ -31,7 +31,7 @@ describe('AlarmEvents', () => {
     store.dispatch(resetSettings());
   });
 
-  it('keeps short cleanup single-flight until cookie cleanup completes', async () => {
+  it('keeps short cleanup single-flight and reruns for a request made mid-cleanup', async () => {
     store.dispatch(updateSetting({ name: SettingID.ACTIVE_MODE, value: true }));
     store.dispatch(updateSetting({ name: SettingID.CLEAN_DELAY, value: 1 }));
 
@@ -59,7 +59,8 @@ describe('AlarmEvents', () => {
     releaseCleanup();
     await firstCleanupLifecycle;
 
-    void AlarmEvents.scheduleActiveModeCleanup();
+    // The request that arrived while the first cleanup was running is not
+    // lost: a second cleanup is scheduled on its own once the first finishes.
     const secondCleanupLifecycle = waitUntil.mock.results[1]
       .value as Promise<void>;
     await jest.advanceTimersByTimeAsync(1000);
