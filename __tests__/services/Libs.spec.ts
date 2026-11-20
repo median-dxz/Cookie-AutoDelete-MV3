@@ -44,6 +44,7 @@ import {
   returnMatchedExpressionObject,
   returnOptionalCookieAPIAttributes,
   showNotification,
+  siteDataRemovalTypes,
   sleep,
   throwErrorNotification,
   trimDot,
@@ -1621,6 +1622,23 @@ describe('Library Functions', () => {
       expect(
         global.browser.runtime.getPlatformInfo.mock.calls.length,
       ).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('siteDataRemovalTypes()', () => {
+    it('should add Cache Storage to Cache on Chromium only', () => {
+      expect(siteDataRemovalTypes(SiteDataType.CACHE, true)).toEqual({
+        cache: true,
+        cacheStorage: true,
+      });
+      expect(siteDataRemovalTypes(SiteDataType.CACHE, false)).toEqual({
+        cache: true,
+      });
+    });
+    it('should leave other Site Data types as they are', () => {
+      expect(siteDataRemovalTypes(SiteDataType.INDEXEDDB, true)).toEqual({
+        indexedDB: true,
+      });
     });
   });
 

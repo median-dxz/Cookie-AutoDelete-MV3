@@ -44,6 +44,7 @@ import {
   returnMatchedExpressionObject,
   returnOptionalCookieAPIAttributes,
   showNotification,
+  siteDataRemovalTypes,
   siteDataToBrowser,
   SITEDATATYPES,
   sleep,
@@ -592,21 +593,18 @@ export const clearSiteDataForThisDomain = createAsyncThunk(
           browser.i18n.getMessage(`${siteDataToBrowser(sd)}Text`),
         );
       }
-      // Chromium keeps Cache Storage and File System data under their own
-      // data types, which the list above does not cover.
+      // Chromium keeps File System data under its own data type, which the
+      // list above does not cover.
       if (isChrome(state.cache)) {
-        // Neither `origins` nor these data types exist in the polyfill typings.
+        // Neither `origins` nor this data type exist in the polyfill typings.
         const removalOptions: Record<string, string[]> = { origins: domains };
-        const chromiumOnly: Record<string, boolean> = {
-          cacheStorage: true,
-          fileSystems: true,
-        };
+        const chromiumOnly: Record<string, boolean> = { fileSystems: true };
         try {
           await browser.browsingData.remove(removalOptions, chromiumOnly);
         } catch (e: unknown) {
           cadLog(
             {
-              msg: 'CleanupService.clearSiteDataForThisDomain:  browser.browsingData.remove of cacheStorage/fileSystems returned an error:',
+              msg: 'CleanupService.clearSiteDataForThisDomain:  browser.browsingData.remove of fileSystems returned an error:',
               type: 'error',
               x: e,
             },
@@ -692,9 +690,7 @@ export const removeSiteData = async (
       {
         [listName]: domains,
       },
-      {
-        [sd]: true,
-      },
+      siteDataRemovalTypes(siteData, listName === 'origins'),
     );
     showNotification(
       {
