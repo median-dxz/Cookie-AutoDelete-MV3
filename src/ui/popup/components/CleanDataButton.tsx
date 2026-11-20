@@ -13,8 +13,7 @@
 import * as React from 'react';
 import browser from 'webextension-polyfill';
 import {
-  clearCookiesForThisDomain,
-  clearLocalStorageForThisDomain,
+  clearAllForThisDomain,
   clearSiteDataForThisDomain,
 } from '../../../services/CleanupService';
 import type { SiteDataType } from '../../../typings/Enums';
@@ -56,25 +55,14 @@ const CleanDataButton: React.FunctionComponent<OwnProps> = (props) => {
     ): Promise<boolean> => {
       if (!hostname) return false;
 
-      let result = await dispath(
-        clearSiteDataForThisDomain({ siteData, hostname }),
-      ).unwrap();
-
       if (siteData === 'All') {
         if (!tab) return false;
-
-        const cookieSuccess = await dispath(
-          clearCookiesForThisDomain(tab),
-        ).unwrap();
-
-        const localStorageSuccess = await dispath(
-          clearLocalStorageForThisDomain(tab),
-        ).unwrap();
-
-        result = result || cookieSuccess || localStorageSuccess;
+        return dispath(clearAllForThisDomain({ tab, hostname })).unwrap();
       }
-      
-      return result;
+
+      return dispath(
+        clearSiteDataForThisDomain({ siteData, hostname }),
+      ).unwrap();
     },
     [dispath],
   );

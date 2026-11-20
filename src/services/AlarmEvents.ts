@@ -19,6 +19,8 @@ import browser from 'webextension-polyfill';
 
 export default class AlarmEvents extends StoreUser {
   private static shortActiveModePending = false;
+  private static shortActiveModeRunning = false;
+  private static shortActiveModeRerun = false;
   public static ALARMS_SCHEDULE_CLEANUP = 'activeModeAlarm';
 
   public static handleAlarmEvent = async () => {
@@ -42,15 +44,28 @@ export default class AlarmEvents extends StoreUser {
     // Create an alarm delay or use setTimeout before cookie cleanup
     if (milliseconds < 60_000) {
       if (AlarmEvents.shortActiveModePending) {
+        // A cleanup that is already running has taken its snapshot of open
+        // tabs, so it cannot cover this request. Run again once it finishes.
+        if (AlarmEvents.shortActiveModeRunning) {
+          AlarmEvents.shortActiveModeRerun = true;
+        }
         return;
       }
       AlarmEvents.shortActiveModePending = true;
 
       return void waitUntil(
         sleep(milliseconds)
-          .then(AlarmEvents.handleAlarmEvent)
+          .then(() => {
+            AlarmEvents.shortActiveModeRunning = true;
+            return AlarmEvents.handleAlarmEvent();
+          })
           .finally(() => {
             AlarmEvents.shortActiveModePending = false;
+            AlarmEvents.shortActiveModeRunning = false;
+            if (AlarmEvents.shortActiveModeRerun) {
+              AlarmEvents.shortActiveModeRerun = false;
+              void AlarmEvents.scheduleActiveModeCleanup();
+            }
           }),
       );
     }

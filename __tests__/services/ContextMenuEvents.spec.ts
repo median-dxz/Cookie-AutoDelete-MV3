@@ -253,9 +253,9 @@ describe('ContextMenuEvents', () => {
         },
         sampleTab,
       );
-      expect(spyCleanupService.clearSiteDataForThisDomain).toHaveBeenCalledWith(
+      expect(spyCleanupService.clearAllForThisDomain).toHaveBeenCalledWith(
         expect.objectContaining({
-          siteData: 'All',
+          tab: sampleTab,
           hostname: expect.any(String),
         }),
       );

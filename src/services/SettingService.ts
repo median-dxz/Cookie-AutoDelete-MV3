@@ -14,7 +14,13 @@
 import StoreUser from './StoreUser';
 import ContextualIdentitiesEvents from './ContextualIdentitiesEvents';
 import { validateSettings } from '../redux/BackgroundActions';
-import { cadLog, siteDataToBrowser, SITEDATATYPES } from './Libs';
+import {
+  cadLog,
+  isChrome,
+  siteDataRemovalTypes,
+  siteDataToBrowser,
+  SITEDATATYPES,
+} from './Libs';
 import { checkIfProtected, setGlobalIcon } from './BrowserActionService';
 import ContextMenuEvents from './ContextMenuEvents';
 import { SettingID, SiteDataType } from '../typings/Enums';
@@ -75,7 +81,10 @@ export default class SettingService extends StoreUser {
         }
         await browser.browsingData.remove(
           { since: 0 },
-          { [siteDataToBrowser(siteData)]: true },
+          siteDataRemovalTypes(
+            siteData,
+            isChrome(StoreUser.store.getState().cache),
+          ),
         );
         cadLog(
           {

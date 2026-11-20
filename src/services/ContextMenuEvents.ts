@@ -14,6 +14,7 @@
 import browser from 'webextension-polyfill';
 import { ListType, SettingID, SiteDataType } from '../typings/Enums';
 import {
+  clearAllForThisDomain,
   clearCookiesForThisDomain,
   clearLocalStorageForThisDomain,
   clearSiteDataForThisDomain,
@@ -398,6 +399,10 @@ export default class ContextMenuEvents extends StoreUser {
       }
       switch (siteData) {
         case 'All':
+          await StoreUser.store.dispatch(
+            clearAllForThisDomain({ tab, hostname }),
+          );
+          break;
         case SiteDataType.CACHE:
         case SiteDataType.INDEXEDDB:
         case SiteDataType.PLUGINDATA:

@@ -44,6 +44,7 @@ import {
   returnMatchedExpressionObject,
   returnOptionalCookieAPIAttributes,
   showNotification,
+  siteDataRemovalTypes,
   siteDataToBrowser,
   SITEDATATYPES,
   sleep,
@@ -592,6 +593,25 @@ export const clearSiteDataForThisDomain = createAsyncThunk(
           browser.i18n.getMessage(`${siteDataToBrowser(sd)}Text`),
         );
       }
+      // Chromium keeps File System data under its own data type, which the
+      // list above does not cover.
+      if (isChrome(state.cache)) {
+        // Neither `origins` nor this data type exist in the polyfill typings.
+        const removalOptions: Record<string, string[]> = { origins: domains };
+        const chromiumOnly: Record<string, boolean> = { fileSystems: true };
+        try {
+          await browser.browsingData.remove(removalOptions, chromiumOnly);
+        } catch (e: unknown) {
+          cadLog(
+            {
+              msg: 'CleanupService.clearSiteDataForThisDomain:  browser.browsingData.remove of fileSystems returned an error:',
+              type: 'error',
+              x: e,
+            },
+            debug,
+          );
+        }
+      }
       // To consolidate the notification shown, we do it out here.
       showNotification(
         {
@@ -615,6 +635,27 @@ export const clearSiteDataForThisDomain = createAsyncThunk(
       );
     }
     return true;
+  },
+);
+
+/**
+ * Cleanup of everything for a domain: cookies, browsing data, and the tab's
+ * local/session storage. Cookies go first, and each step runs regardless of
+ * whether the others succeed.
+ */
+export const clearAllForThisDomain = createAsyncThunk(
+  'service/cleanup/clearAllForThisDomain',
+  async (
+    payload: { tab: browser.Tabs.Tab; hostname: string },
+    { dispatch },
+  ) => {
+    const { tab, hostname } = payload;
+    const results = [
+      await dispatch(clearCookiesForThisDomain(tab)),
+      await dispatch(clearSiteDataForThisDomain({ siteData: 'All', hostname })),
+      await dispatch(clearLocalStorageForThisDomain(tab)),
+    ];
+    return results.some((r) => r.payload === true);
   },
 );
 
@@ -649,9 +690,7 @@ export const removeSiteData = async (
       {
         [listName]: domains,
       },
-      {
-        [sd]: true,
-      },
+      siteDataRemovalTypes(siteData, listName === 'origins'),
     );
     showNotification(
       {

@@ -828,6 +828,21 @@ export const siteDataToBrowser = (siteData: SiteDataType): string =>
   `${siteData[0].toLowerCase()}${siteData.slice(1)}`;
 
 /**
+ * Data types to pass to browser.browsingData.remove for a Site Data type.
+ * Chromium keeps Cache Storage under its own data type, which has no setting
+ * here, so it is cleaned together with Cache. Firefox has no such type.
+ * @param siteData The Site Data being cleaned.
+ * @param chromium Whether the browser is Chromium based.
+ */
+export const siteDataRemovalTypes = (
+  siteData: SiteDataType,
+  chromium: boolean,
+): Record<string, boolean> => ({
+  [siteDataToBrowser(siteData)]: true,
+  ...(chromium && siteData === SiteDataType.CACHE && { cacheStorage: true }),
+});
+
+/**
  * Sleep execution for ms.
  * Ensures no 0 second setTimeout otherwise side effects.
  * Ensures we don't go over max signed 32-bit Int of 2,147,483,647
