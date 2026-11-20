@@ -20,7 +20,6 @@ import {
   cadLog,
   convertVersionToNumber,
   createPartialTabInfo,
-  eventListenerActions,
   extractMainDomain,
   getAllCookiesForDomain,
   getContainerExpressionDefault,
@@ -54,7 +53,6 @@ import {
 } from '../../src/services/Libs';
 import {
   BrowserName,
-  EventListenerAction,
   ListType,
   SettingID,
   SiteDataType,
@@ -316,78 +314,6 @@ describe('Library Functions', () => {
         url: 'https://test.cad',
         windowId: 1,
       });
-    });
-  });
-
-  describe('eventListenerActions()', () => {
-    it('should do nothing if an event was not passed in', () => {
-      expect(() => {
-        eventListenerActions(
-          undefined as any,
-          Function,
-          EventListenerAction.ADD,
-        );
-      }).not.toThrow();
-      // Unexpected error would be TypeError: "cannot read property 'hasListener' of undefined"
-    });
-
-    it('should do nothing if an "event" passed in is not an Event Listener', () => {
-      expect(() => {
-        eventListenerActions({} as any, Function, EventListenerAction.REMOVE);
-      }).not.toThrow();
-    });
-
-    it('should add the event listener', () => {
-      eventListenerActions(
-        global.browser.cookies.onChanged,
-        Function,
-        EventListenerAction.ADD,
-      );
-      expect(
-        global.browser.cookies.onChanged.addListener,
-      ).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not add the event listener again if it already exists', () => {
-      when(global.browser.cookies.onChanged.hasListener)
-        .calledWith(expect.any(Function))
-        .mockReturnValue(true);
-      eventListenerActions(
-        global.browser.cookies.onChanged,
-        Function,
-        EventListenerAction.ADD,
-      );
-      expect(
-        global.browser.cookies.onChanged.addListener,
-      ).not.toHaveBeenCalled();
-    });
-
-    it('should remove the listener', () => {
-      when(global.browser.cookies.onChanged.hasListener)
-        .calledWith(expect.any(Function))
-        .mockReturnValue(true);
-      eventListenerActions(
-        global.browser.cookies.onChanged,
-        Function,
-        EventListenerAction.REMOVE,
-      );
-      expect(
-        global.browser.cookies.onChanged.removeListener,
-      ).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not remove a non-existent listener', () => {
-      when(global.browser.cookies.onChanged.hasListener)
-        .calledWith(expect.any(Function))
-        .mockReturnValue(false);
-      eventListenerActions(
-        global.browser.cookies.onChanged,
-        Function,
-        EventListenerAction.REMOVE,
-      );
-      expect(
-        global.browser.cookies.onChanged.removeListener,
-      ).not.toHaveBeenCalled();
     });
   });
 

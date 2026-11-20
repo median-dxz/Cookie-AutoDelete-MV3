@@ -44,7 +44,7 @@ Independent community-maintained fork; not affiliated with or endorsed by the or
 
 ### via Chrome Web Store (Recommended for Chrome 🌟)
 
-- [Chrome Web Store](https://chromewebstore.google.com/detail/cookie-autodelete-next-edition/ohcmnioddbjkcobbpdeomphnimindmgh) (Unlisted)
+- [Chrome Web Store](https://chromewebstore.google.com/detail/ohcmnioddbjkcobbpdeomphnimindmgh) (Unlisted)
 
 ### via Self Installation
 
@@ -102,11 +102,11 @@ npm run lint
 
 #### Building
 
-| Purpose                                | Chrome                   | Firefox                   |
-| -------------------------------------- | ------------------------ | ------------------------- |
-| Compile to an unpacked directory       | `npm run compile:chrome` | `npm run compile:firefox` |
-| Package an existing compiled directory | `npm run package:chrome` | `npm run package:firefox` |
-| Compile and package                    | `npm run build:chrome`   | `npm run build:firefox`   |
+| Purpose                          | Chrome                   | Firefox                   |
+| -------------------------------- | ------------------------ | ------------------------- |
+| Compile to an unpacked directory | `npm run compile:chrome` | `npm run compile:firefox` |
+| Package an existing directory    | `npm run package:chrome` | `npm run package:firefox` |
+| Compile and package              | `npm run build:chrome`   | `npm run build:firefox`   |
 
 `npm run build` builds both browsers. Unpacked builds are written to `/dist`; ZIP artifacts are written to `/builds`. Firefox ZIPs are unsigned test artifacts.
 

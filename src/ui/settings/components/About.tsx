@@ -175,7 +175,7 @@ class About extends React.Component<AboutProps> {
               : `(Please add version number on paste)`
           }\n- CookieAutoDelete Version: ${
             browser.runtime.getManifest().version
-          }`}
+          }\n- User Agent: ${navigator.userAgent}`}
         />
         <br />
         <IconButton

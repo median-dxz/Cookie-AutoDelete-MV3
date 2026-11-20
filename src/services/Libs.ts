@@ -22,7 +22,6 @@ import type {
 } from '../typings/Global';
 import {
   BrowserName,
-  EventListenerAction,
   ListType,
   SettingID,
   SiteDataType,
@@ -118,32 +117,6 @@ export const createPartialTabInfo = (
 export const convertVersionToNumber = (version?: string): number => {
   if (!version) return -1;
   return parseInt(version.replace(/[.]/g, ''), 10);
-};
-
-/**
- * Abstract Event Listener call to add/remove with checks.
- * @param event The event listener
- * @param listener The callback function to add/check/remove.
- * @param action The EventListenerAction (add/remove).
- */
-export const eventListenerActions = (
-  event: browser.Events.Event<any>,
-  listener: (...args: any[]) => void,
-  action: EventListenerAction,
-): void => {
-  if (!event || !event.hasListener) return;
-  switch (action) {
-    case EventListenerAction.ADD:
-      if (!event.hasListener(listener)) {
-        event.addListener(listener);
-      }
-      break;
-    case EventListenerAction.REMOVE:
-      if (event.hasListener(listener)) {
-        event.removeListener(listener);
-      }
-      break;
-  }
 };
 
 /**
@@ -523,9 +496,7 @@ export const globExpressionToRegExp = (glob: string): string => {
   }
   const wildStart = normalizedGlob.startsWith('*.');
 
-  return `${`${wildStart ? '(^|.)' : '^'}${normalizedGlob.slice(
-    wildStart ? 2 : 0,
-  )}`
+  return `${`${wildStart ? '(^|.)' : '^'}${normalizedGlob.slice(wildStart ? 2 : 0)}`
     .replace(/[[\]\\/.]/g, '\\$&')
     .replace(/\*/g, '.*')}$`;
 };
@@ -754,9 +725,7 @@ export const prepareCookieDomain = (cookie: browser.Cookies.Cookie): string => {
 
   const sDot = cookieDomain.startsWith('.') ? 1 : 0;
 
-  return `http${cookie.secure ? 's' : ''}://${cookieDomain.slice(sDot)}${
-    cookie.path
-  }`;
+  return `http${cookie.secure ? 's' : ''}://${cookieDomain.slice(sDot)}${cookie.path}`;
 };
 
 /**

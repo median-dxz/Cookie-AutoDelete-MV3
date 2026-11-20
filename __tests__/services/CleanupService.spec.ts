@@ -466,7 +466,7 @@ describe('CleanupService', () => {
             storeId: 'firefox-default',
           })
           .mockResolvedValue([
-            mockCookie, // no list
+            { ...mockCookie, firstPartyDomain: 'top-level.example' }, // no list
             googleCookie, // greylist, opentab
             youtubeCookie, // whitelist
             yahooCookie, // no list
@@ -500,6 +500,12 @@ describe('CleanupService', () => {
           storeId: 'default',
         });
         expect(global.browser.cookies.remove).toHaveBeenCalledTimes(2);
+        expect(global.browser.cookies.remove).toHaveBeenCalledWith({
+          firstPartyDomain: 'top-level.example',
+          name: mockCookie.name,
+          storeId: mockCookie.storeId,
+          url: mockCookie.preparedCookieDomain,
+        });
         expect(global.browser.browsingData.remove).not.toHaveBeenCalled();
         expect(ffResult.cachedResults.dateTime.indexOf('12:34:56')).not.toBe(
           -1,

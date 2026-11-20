@@ -95,7 +95,7 @@ export default defineConfig(() => {
         },
       },
     },
-    plugins: [react(), crx({ manifest })],
+    plugins: [react(), crx({ manifest, browser })],
     css: {
       preprocessorOptions: {
         scss: {
@@ -110,7 +110,7 @@ export default defineConfig(() => {
     },
     server: {
       cors: {
-        origin: [/chrome-extension:\/\//],
+        origin: [/chrome-extension:\/\//, /moz-extension:\/\//],
       },
       strictPort: true,
       port: 5173,

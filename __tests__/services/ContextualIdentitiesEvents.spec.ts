@@ -17,7 +17,6 @@ import type { Store } from 'redux';
 import { addCache } from '../../src/redux/CacheSlice';
 import { configureWrapStore, State } from '../../src/redux/Store';
 import ContextualIdentitiesEvents from '../../src/services/ContextualIdentitiesEvents';
-import * as Lib from '../../src/services/Libs';
 import StoreUser from '../../src/services/StoreUser';
 import { ListType, SettingID } from '../../src/typings/Enums';
 import type { Expression } from '../../src/typings/Global';
@@ -29,8 +28,6 @@ import { initialState } from '../__mock__/initialState';
 import { resetSettings, updateSetting } from '../../src/redux/SettingsSlice';
 
 import { ReduxConstants } from '../../src/redux/ReduxConstants';
-
-const spyLib = global.generateSpies(Lib);
 
 const store: Store<State> = configureWrapStore(initialState);
 StoreUser.init(store);
@@ -73,15 +70,6 @@ const wildCardWhiteListGoogle = {
   storeId: 'remove-container-1',
 } as const satisfies Expression;
 
-class TestContextualIdentitiesEvents extends ContextualIdentitiesEvents {
-  public static getIsInitialized() {
-    return ContextualIdentitiesEvents.isInitialized;
-  }
-  public static setIsInitialized(value: boolean) {
-    ContextualIdentitiesEvents.isInitialized = value;
-  }
-}
-
 const defaultContextualIdentity: browser.ContextualIdentities.ContextualIdentity =
   {
     cookieStoreId: 'firefox-container-0',
@@ -105,68 +93,64 @@ describe('ContextualIdentitiesEvents', () => {
         { ...defaultContextualIdentity, cookieStoreId: 'firefox-container-99' },
       ] as never);
   });
+  beforeEach(() => {
+    TestStore.changeSetting(SettingID.CONTEXTUAL_IDENTITIES, true);
+  });
   afterEach(() => {
     TestStore.resetSetting();
   });
 
-  describe('init', () => {
-    it('should do nothing if browser.contextualIdentities do not exist', () => {
-      // Override setup of browser.contextualIdentities
-      const jestContextualIdentities = global.browser.contextualIdentities;
-      (global.browser.contextualIdentities as any) = undefined;
+  it('registers before the store is ready; a queued removal while disabled preserves rules and detaches the registered listeners', async () => {
+    const { onCreated, onRemoved, onUpdated } =
+      global.browser.contextualIdentities;
+    const cookieStoreId = wildCardWhiteListGoogle.storeId;
+    TestStore.changeSetting(SettingID.CONTEXTUAL_IDENTITIES, false);
+    TestStore.changeSetting(SettingID.CONTEXTUAL_IDENTITIES_AUTOREMOVE, true);
+    TestStore.dispatch(wildCardWhiteListGoogle, ReduxConstants.ADD_EXPRESSION);
+    TestStore.addCache({
+      key: 'firefox-container-99',
+      value: 'Cached container',
+    });
+    jest.useFakeTimers();
+    try {
+      Reflect.set(StoreUser, 'store', undefined);
       ContextualIdentitiesEvents.init();
-      expect(spyLib.getSetting).not.toHaveBeenCalled();
-      // Restore browser.contextualIdentities for future tests
-      global.browser.contextualIdentities = jestContextualIdentities;
-    });
-    it('should do nothing if contextualIdentities setting is false/disabled', () => {
-      TestStore.changeSetting(SettingID.CONTEXTUAL_IDENTITIES, false);
-      ContextualIdentitiesEvents.init();
-      expect(TestContextualIdentitiesEvents.getIsInitialized()).toEqual(false);
-    });
-    it('should populate cache with existing container maps and add listeners.', async () => {
-      when(global.browser.contextualIdentities.onCreated.hasListener)
-        .calledWith(expect.any(Function))
-        .mockReturnValue(false);
-      TestStore.changeSetting(SettingID.CONTEXTUAL_IDENTITIES, true);
-      await ContextualIdentitiesEvents.init();
-      expect(TestContextualIdentitiesEvents.getIsInitialized()).toEqual(true);
-      expect(spyLib.eventListenerActions).toHaveBeenCalledTimes(3);
-    });
-    it('should do nothing if contextualIdentities was already initialized', () => {
-      TestStore.changeSetting(SettingID.CONTEXTUAL_IDENTITIES, true);
-      ContextualIdentitiesEvents.init();
-      expect(spyLib.eventListenerActions).not.toHaveBeenCalled();
-    });
-  });
+      expect(onCreated.addListener).toHaveBeenCalledWith(
+        ContextualIdentitiesEvents.onContainerCreated,
+      );
+      expect(onUpdated.addListener).toHaveBeenCalledWith(
+        ContextualIdentitiesEvents.onContainerUpdated,
+      );
+      expect(onRemoved.addListener).toHaveBeenCalledWith(
+        ContextualIdentitiesEvents.onContainerRemoved,
+      );
 
-  describe('deInit()', () => {
-    it('should do nothing if it was not initialized previously', async () => {
-      TestContextualIdentitiesEvents.setIsInitialized(false);
-      await ContextualIdentitiesEvents.deInit();
-      expect(spyLib.eventListenerActions).not.toHaveBeenCalled();
-    });
-    it('should remove all listeners and existing containers in cache', async () => {
-      TestStore.addCache({
-        payload: {
-          key: 'firefox-container-99',
-          value: 'TestContainer',
-        },
+      const listener = jest.mocked(onRemoved.addListener).mock.calls[0][0];
+      const pending = listener({
+        contextualIdentity: { ...defaultContextualIdentity, cookieStoreId },
       });
-      when(global.browser.contextualIdentities.onCreated.hasListener)
-        .calledWith(expect.any(Function))
-        .mockReturnValue(true);
-      TestContextualIdentitiesEvents.setIsInitialized(true);
-      await ContextualIdentitiesEvents.deInit();
-      expect(spyLib.eventListenerActions).toHaveBeenCalledTimes(3);
-      expect(TestContextualIdentitiesEvents.getIsInitialized()).toEqual(false);
+      expect(onRemoved.removeListener).not.toHaveBeenCalled();
+      StoreUser.init(store);
+      await jest.advanceTimersByTimeAsync(250);
+      void pending;
+      expect(TestStore.getLists()).toHaveProperty(cookieStoreId);
       expect(TestStore.getCacheValue('firefox-container-99')).toBeUndefined();
-    });
+      expect(onCreated.removeListener).toHaveBeenCalledWith(
+        ContextualIdentitiesEvents.onContainerCreated,
+      );
+      expect(onUpdated.removeListener).toHaveBeenCalledWith(
+        ContextualIdentitiesEvents.onContainerUpdated,
+      );
+      expect(onRemoved.removeListener).toHaveBeenCalledWith(listener);
+    } finally {
+      StoreUser.init(store);
+      jest.useRealTimers();
+    }
   });
 
   describe('onContainerCreated()', () => {
-    it('should add the new container map into the cache', () => {
-      ContextualIdentitiesEvents.onContainerCreated({
+    it('should add the new container map into the cache', async () => {
+      await ContextualIdentitiesEvents.onContainerCreated({
         contextualIdentity: {
           ...defaultContextualIdentity,
           cookieStoreId: 'new-container-1',
@@ -179,12 +163,12 @@ describe('ContextualIdentitiesEvents', () => {
   });
 
   describe('onContainerRemoved()', () => {
-    it('should set undefined that cookieStoreId from cache', () => {
+    it('should set undefined that cookieStoreId from cache', async () => {
       TestStore.addCache({
         key: 'remove-container-1',
         value: 'AShortLivedContainer',
       });
-      ContextualIdentitiesEvents.onContainerRemoved({
+      await ContextualIdentitiesEvents.onContainerRemoved({
         contextualIdentity: {
           ...defaultContextualIdentity,
           cookieStoreId: 'remove-container-1',
@@ -192,7 +176,7 @@ describe('ContextualIdentitiesEvents', () => {
       });
       expect(TestStore.getCacheValue('remove-container-1')).toBeUndefined();
     });
-    it('should not remove expression list if related setting is disabled', () => {
+    it('should not remove expression list if related setting is disabled', async () => {
       TestStore.changeSetting(
         SettingID.CONTEXTUAL_IDENTITIES_AUTOREMOVE,
         false,
@@ -201,7 +185,7 @@ describe('ContextualIdentitiesEvents', () => {
         wildCardWhiteListGoogle,
         ReduxConstants.ADD_EXPRESSION,
       );
-      ContextualIdentitiesEvents.onContainerRemoved({
+      await ContextualIdentitiesEvents.onContainerRemoved({
         contextualIdentity: {
           ...defaultContextualIdentity,
           cookieStoreId: 'remove-container-1',
@@ -209,13 +193,13 @@ describe('ContextualIdentitiesEvents', () => {
       });
       expect(TestStore.getLists()).toHaveProperty('remove-container-1');
     });
-    it('should remove expression list if related setting is enabled', () => {
+    it('should remove expression list if related setting is enabled', async () => {
       TestStore.changeSetting(SettingID.CONTEXTUAL_IDENTITIES_AUTOREMOVE, true);
       TestStore.dispatch(
         wildCardWhiteListGoogle,
         ReduxConstants.ADD_EXPRESSION,
       );
-      ContextualIdentitiesEvents.onContainerRemoved({
+      await ContextualIdentitiesEvents.onContainerRemoved({
         contextualIdentity: {
           ...defaultContextualIdentity,
           cookieStoreId: 'remove-container-1',
@@ -226,8 +210,8 @@ describe('ContextualIdentitiesEvents', () => {
   });
 
   describe('onContainerUpdated()', () => {
-    it('should do nothing if for some reason the container updated was not in the cache', () => {
-      ContextualIdentitiesEvents.onContainerUpdated({
+    it('should do nothing if for some reason the container updated was not in the cache', async () => {
+      await ContextualIdentitiesEvents.onContainerUpdated({
         contextualIdentity: {
           ...defaultContextualIdentity,
           cookieStoreId: 'non-existent-0',
@@ -236,9 +220,9 @@ describe('ContextualIdentitiesEvents', () => {
       expect(TestStore.getCacheValue('non-existent-0')).toBeUndefined();
     });
 
-    it('should update the container name accordingly', () => {
+    it('should update the container name accordingly', async () => {
       TestStore.addCache({ key: 'container-01', value: 'oldValue' });
-      ContextualIdentitiesEvents.onContainerUpdated({
+      await ContextualIdentitiesEvents.onContainerUpdated({
         contextualIdentity: {
           ...defaultContextualIdentity,
           cookieStoreId: 'container-01',
